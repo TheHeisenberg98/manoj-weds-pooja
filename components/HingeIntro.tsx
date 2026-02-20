@@ -54,12 +54,13 @@ export default function HingeIntro({ player, onComplete }: HingeIntroProps) {
             {showProfile && (
               <div className="animate-slide-up">
                 <div className="bg-white rounded-3xl overflow-hidden shadow-2xl text-left">
-                  {/* Profile photo placeholder */}
-                  <div className="w-full aspect-[3/4] bg-gradient-to-br from-gray-200 to-gray-300 relative flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="text-6xl mb-2">{player === 'manoj' ? '👩' : '👨'}</div>
-                      <div className="text-gray-500 text-sm">{partnerName}&apos;s Photo</div>
-                    </div>
+                  {/* Profile photo */}
+                  <div className="w-full aspect-[3/4] relative">
+                    <img
+                      src={player === 'manoj' ? '/pooja.jpg' : '/manoj.jpg'}
+                      alt={partnerName}
+                      className="w-full h-full object-cover"
+                    />
                     {/* Hinge-style prompt overlay */}
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-5">
                       <div className="text-white">
@@ -117,12 +118,12 @@ export default function HingeIntro({ player, onComplete }: HingeIntroProps) {
 
               <div className="relative z-10 py-12">
                 {/* Two profile circles coming together */}
-                <div className="flex items-center justify-center gap-[-10px] mb-6">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-royal-red to-royal-red-light border-4 border-white flex items-center justify-center text-4xl shadow-xl -mr-3 z-10">
-                    👨
+                <div className="flex items-center justify-center mb-6">
+                  <div className="w-24 h-24 rounded-full border-4 border-white overflow-hidden shadow-xl -mr-3 z-10">
+                    <img src="/manoj.jpg" alt="Manoj" className="w-full h-full object-cover" />
                   </div>
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-pink-500 to-rose-400 border-4 border-white flex items-center justify-center text-4xl shadow-xl -ml-3">
-                    👩
+                  <div className="w-24 h-24 rounded-full border-4 border-white overflow-hidden shadow-xl -ml-3">
+                    <img src="/pooja.jpg" alt="Pooja" className="w-full h-full object-cover" />
                   </div>
                 </div>
 
