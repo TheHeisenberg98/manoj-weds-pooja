@@ -98,7 +98,7 @@ export default function GiftReveal({ player }: GiftRevealProps) {
                   MakeMyTrip
                 </div>
                 <div className="text-sm text-white/70 mb-4">Gift Voucher</div>
-                <div className="text-4xl font-bold text-white font-sans">₹ ____</div>
+                <div className="text-4xl font-bold text-white font-sans">₹ 10,001</div>
                 <div className="text-xs text-white/50 mt-2">
                   Valid for Flights • Hotels • Holidays
                 </div>
@@ -115,9 +115,12 @@ export default function GiftReveal({ player }: GiftRevealProps) {
 
             <GoldDivider />
 
-            <p className="text-sm text-royal-muted/60 italic mb-8">
-              Voucher details will be shared in person 🤝
-            </p>
+            <div className="bg-black/30 border border-royal-gold/20 rounded-xl p-4 mb-8">
+  <div className="text-xs text-royal-gold/60 mb-1">Gift Card Number</div>
+  <div className="text-lg text-white font-bold tracking-widest" style={{ fontFamily: 'monospace' }}>
+    1001-1301-1205-8190
+  </div>
+</div>
 
             {/* Matching Answers Comparison */}
             {showMatches && matchResults.length > 0 && (
