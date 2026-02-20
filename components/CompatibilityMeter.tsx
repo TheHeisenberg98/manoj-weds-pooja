@@ -89,7 +89,6 @@ export default function CompatibilityMeter({ player, onComplete }: Compatibility
     computeScore();
 
     // Run analysis steps
-    let stepTimeout: NodeJS.Timeout;
     let totalDelay = 0;
 
     ANALYSIS_STEPS.forEach((step, i) => {
@@ -98,9 +97,8 @@ export default function CompatibilityMeter({ player, onComplete }: Compatibility
     });
 
     // After all steps, reveal score
-    setTimeout(() => setPhase('reveal'), totalDelay + 500);
-
-    return () => clearTimeout(stepTimeout);
+    const finalTimer = setTimeout(() => setPhase('reveal'), totalDelay + 500);
+    return () => clearTimeout(finalTimer);
   }, []);
 
   // Animate score counter
