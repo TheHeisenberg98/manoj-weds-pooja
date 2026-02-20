@@ -20,14 +20,14 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     type: 'matching',
     category: '🗺️ Travel',
     question: "Dream honeymoon destination?",
-    options: ['Maldives', 'Switzerland', 'Bali'],
+    options: ['Maldives', 'Switzerland', 'Phook ke poori duniya ghum lenge room se'],
   },
   {
     id: 'travel-2',
     type: 'matching',
     category: '🗺️ Travel',
     question: "Which place did you both visit together for the FIRST time?",
-    options: ['Goa', 'Nandi Hills', 'Coorg'],
+    options: ['Her place', 'His place(rooftop/umbrella muah muah)', 'Tapri'],
   },
   {
     id: 'travel-3',
@@ -57,7 +57,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     type: 'matching',
     category: '🍕 Food',
     question: "Your partner's comfort food?",
-    options: ['Biryani', 'Pasta', 'Rajma Chawal'],
+    options: ['Biryani', 'Jo Pooja banade', 'Gabbar will decide'],
   },
   {
     id: 'food-2',
@@ -71,7 +71,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     type: 'matching',
     category: '🍕 Food',
     question: "What do you ALWAYS order when eating out?",
-    options: ['Butter Chicken', 'Paneer Tikka', 'Whatever partner orders (plays safe)'],
+    options: ['Nepali food', 'Biryani', 'Whatever partner orders (plays safe)'],
   },
   {
     id: 'food-4',
@@ -85,7 +85,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     type: 'matching',
     category: '🍕 Food',
     question: "Your go-to late night craving?",
-    options: ['Ice cream from the fridge', 'Instant noodles', 'Full meal from Swiggy'],
+    options: ['Ice cream from the fridge', 'Chai biscoot', 'Costa hai na! Sorted XD'],
   },
 
   // ═══ 🏙️ BENGALURU (5) ═══
@@ -101,7 +101,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     type: 'matching',
     category: '🏙️ Bengaluru',
     question: "Which Bengaluru spot holds a special memory for you both?",
-    options: ['Lalbagh', 'Nandi Hills sunrise', 'That one café where it all started'],
+    options: ['Some fine dining', 'Rooftop(coz admin knows everything lol)', 'That one café where it all started'],
   },
   {
     id: 'blr-3',
@@ -117,27 +117,20 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     question: "If you had one last evening in Bengaluru together, where?",
     options: ['Rooftop restaurant with a view', 'Long drive on Nice Road', 'Back to "our spot" one last time'],
   },
-  {
-    id: 'blr-5',
-    type: 'matching',
-    category: '🏙️ Bengaluru',
-    question: "Bengaluru traffic on your way to a date — your reaction?",
-    options: ['Road rage (honking included)', 'Chill playlist and enjoy the ride', 'Cancel and order in instead'],
-  },
 
   // ═══ 😂 FUN & PERSONALITY (7) ═══
   {
     id: 'fun-1',
     type: 'matching',
     category: '😂 Fun',
-    question: "Your partner's most annoying habit?",
-    options: ['Always on their phone', 'Being late to everything', 'Forgetting important dates'],
+    question: "Manoj's most annoying habit?",
+    options: ['Always on their laptop(fuck you AmEx)', 'Being late to everything', 'Forgetting important dates'],
   },
   {
     id: 'fun-2',
     type: 'matching',
     category: '😂 Fun',
-    question: "What do YOU think your own worst habit is?",
+    question: "What do YOU think Pooja worst habit is?",
     options: ['Taking too long to get ready', 'Overthinking everything', "Saying 'I'm fine' when not fine"],
   },
   {
@@ -152,7 +145,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     type: 'matching',
     category: '😂 Fun',
     question: "Who's more likely to cry at the wedding?",
-    options: ['Manoj (secret softie)', 'Pooja', "Both — waterfall guaranteed"],
+    options: ['Manoj (secret softie)', 'Pooja', "Rona kyu hai bhai"],
   },
   {
     id: 'fun-5',
@@ -207,13 +200,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   },
 
   // ═══ 🎬 POP CULTURE & RANDOM (4) ═══
-  {
-    id: 'pop-1',
-    type: 'matching',
-    category: '🎬 Random',
-    question: "Pick a Bollywood couple that's most like you:",
-    options: ['Bunny & Naina (YJHD)', 'Aman & Naina (Kal Ho Naa Ho)', 'Kabir & Naina (calmer YJHD vibes)'],
-  },
+  
   {
     id: 'pop-2',
     type: 'matching',
