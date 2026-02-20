@@ -15,13 +15,11 @@ export default function CoupleQuiz({ player, onComplete }: QuizProps) {
   const [current, setCurrent] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [answered, setAnswered] = useState(false);
-  const [score, setScore] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [showResult, setShowResult] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const question = questions[current];
-  const totalAboutPartner = questions.filter((q) => q.type === 'about_partner').length;
   const playerName = getPlayerDisplayName(player);
   const partnerName = getPartnerName(player);
 
@@ -33,25 +31,30 @@ export default function CoupleQuiz({ player, onComplete }: QuizProps) {
     const newAnswers = { ...answers, [question.id]: idx };
     setAnswers(newAnswers);
 
-    const isCorrect = question.type === 'about_partner' && idx === question.correctAnswer;
-    if (isCorrect) setScore((s) => s + 1);
-
     setTimeout(async () => {
       if (current < questions.length - 1) {
         setCurrent((c) => c + 1);
         setSelected(null);
         setAnswered(false);
       } else {
-        // Quiz complete — save to Supabase
         setSaving(true);
         setShowResult(true);
 
         try {
+          // Fetch existing data (swipe game answers) and merge
+          const { data } = await supabase
+            .from('players')
+            .select('quiz_answers')
+            .eq('id', player)
+            .single();
+
+          const existing = data?.quiz_answers || {};
+
           const { error } = await supabase.from('players').upsert({
             id: player,
             quiz_completed: true,
-            quiz_answers: newAnswers,
-            quiz_score: score + (isCorrect ? 1 : 0),
+            quiz_answers: { ...existing, ...newAnswers },
+            quiz_score: 0,
             completed_at: new Date().toISOString(),
           });
           if (error) console.error('Save error:', error);
@@ -62,28 +65,21 @@ export default function CoupleQuiz({ player, onComplete }: QuizProps) {
         setSaving(false);
         setTimeout(() => onComplete(), 3000);
       }
-    }, 1500);
+    }, 1200);
   };
 
   if (showResult) {
-    const finalScore = score;
     return (
       <div className="text-center py-16 px-5 animate-scale-in">
-        <div className="text-6xl mb-4">
-          {finalScore >= totalAboutPartner * 0.8 ? '🎉' : finalScore >= totalAboutPartner * 0.5 ? '😄' : '😅'}
-        </div>
+        <div className="text-6xl mb-4">🎉</div>
         <h2 className="text-3xl text-royal-gold font-normal mb-2">
-          {finalScore}/{totalAboutPartner} Correct!
+          Challenge Complete!
         </h2>
         <p className="text-royal-muted text-[15px] mb-2">
-          {finalScore >= totalAboutPartner * 0.8
-            ? `${playerName}, you really know ${partnerName}! 👑`
-            : finalScore >= totalAboutPartner * 0.5
-            ? `Not bad, ${playerName}! You know ${partnerName} pretty well 😄`
-            : `${playerName}... do you even know ${partnerName}? 😂`}
+          All answers recorded, {playerName}!
         </p>
         <p className="text-xs text-royal-muted/50 mb-4">
-          (Matching answers will be compared when both of you finish!)
+          We&apos;ll compare your answers with {partnerName}&apos;s at the grand reveal!
         </p>
         <GoldDivider />
         {saving ? (
@@ -108,10 +104,10 @@ export default function CoupleQuiz({ player, onComplete }: QuizProps) {
           Couple&apos;s Challenge
         </div>
         <h2 className="text-3xl font-normal bg-gradient-to-b from-royal-gold-light to-royal-gold bg-clip-text text-transparent mb-1">
-          How Well Do You Know {partnerName}?
+          How Well Do You Match?
         </h2>
         <p className="text-sm text-royal-muted italic">
-          Both of you must complete this to unlock a surprise
+          Both of you answer the same questions — let&apos;s see if you think alike!
         </p>
         <div className="inline-block mt-3 px-3 py-1 bg-royal-gold/10 border border-royal-gold/20 rounded-full">
           <span className="text-xs text-royal-gold">Playing as: {playerName}</span>
@@ -135,15 +131,11 @@ export default function CoupleQuiz({ player, onComplete }: QuizProps) {
 
       {/* Question card */}
       <div key={current} className="animate-slide-up">
-        {/* Category & type badge */}
+        {/* Category badge */}
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs text-royal-muted/50">{question.category}</span>
-          <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-            question.type === 'matching'
-              ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-              : 'bg-royal-gold/10 text-royal-gold border border-royal-gold/20'
-          }`}>
-            {question.type === 'matching' ? '🔄 Matching' : '🎯 About ' + partnerName}
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+            🔄 Matching
           </span>
         </div>
 
@@ -154,33 +146,20 @@ export default function CoupleQuiz({ player, onComplete }: QuizProps) {
           <p className="text-xl font-medium text-royal-cream leading-relaxed">
             {question.question}
           </p>
-          {question.type === 'matching' && (
-            <p className="text-xs text-purple-300/60 mt-2 italic">
-              No right or wrong — we&apos;ll compare your answer with {partnerName}&apos;s!
-            </p>
-          )}
+          <p className="text-xs text-purple-300/60 mt-2 italic">
+            No right or wrong — we&apos;ll compare your answer with {partnerName}&apos;s!
+          </p>
         </div>
 
         {/* Options */}
         <div className="flex flex-col gap-2.5">
           {question.options.map((opt, i) => {
             const isSelected = selected === i;
-            const isCorrect = question.type === 'about_partner' && i === question.correctAnswer;
             let bg = 'bg-royal-gold/[0.06]';
             let border = 'border-royal-gold/15';
             let badge = '';
 
-            if (answered && question.type === 'about_partner') {
-              if (isCorrect) {
-                bg = 'bg-green-800/20';
-                border = 'border-green-500';
-                badge = '✓';
-              } else if (isSelected && !isCorrect) {
-                bg = 'bg-red-900/20';
-                border = 'border-red-400';
-                badge = '✗';
-              }
-            } else if (answered && question.type === 'matching' && isSelected) {
+            if (answered && isSelected) {
               bg = 'bg-purple-500/15';
               border = 'border-purple-400';
               badge = '✓';
@@ -195,9 +174,7 @@ export default function CoupleQuiz({ player, onComplete }: QuizProps) {
                 }`}
               >
                 <span className={`w-7 h-7 rounded-full border flex items-center justify-center text-sm flex-shrink-0 ${
-                  badge === '✓' ? 'border-green-500 text-green-400' :
-                  badge === '✗' ? 'border-red-400 text-red-400' :
-                  'border-royal-gold/30 text-royal-gold'
+                  badge === '✓' ? 'border-purple-400 text-purple-300' : 'border-royal-gold/30 text-royal-gold'
                 }`}>
                   {badge || String.fromCharCode(65 + i)}
                 </span>
