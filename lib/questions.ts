@@ -1,4 +1,4 @@
-export type QuestionType = 'about_partner' | 'matching';
+export type QuestionType = 'matching' | 'matching';
 
 export interface QuizQuestion {
   id: string;
@@ -15,7 +15,7 @@ export interface QuizQuestion {
 // ============================================
 // ALL 30 QUESTIONS
 // ============================================
-// "about_partner" → correctForManoj = what Manoj answers about Pooja
+// "matching" → correctForManoj = what Manoj answers about Pooja
 //                    correctForPooja = what Pooja answers about Manoj
 // "matching" → no correct answer, compared at gift reveal
 // TODO: Update all correct answers before go-live!
@@ -24,7 +24,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   // ═══ 🗺️ TRAVEL (5) ═══
   {
     id: 'travel-1',
-    type: 'about_partner',
+    type: 'matching',
     category: '🗺️ Travel',
     questionForManoj: "What's Pooja's dream honeymoon destination?",
     questionForPooja: "What's Manoj's dream honeymoon destination?",
@@ -35,7 +35,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: 'travel-2',
-    type: 'about_partner',
+    type: 'matching',
     category: '🗺️ Travel',
     questionForManoj: "Which place did you both visit together for the FIRST time?",
     questionForPooja: "Which place did you both visit together for the FIRST time?",
@@ -46,7 +46,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: 'travel-3',
-    type: 'about_partner',
+    type: 'matching',
     category: '🗺️ Travel',
     questionForManoj: "Who's the better navigator on road trips?",
     questionForPooja: "Who's the better navigator on road trips?",
@@ -73,7 +73,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   // ═══ 🍕 FOOD (5) ═══
   {
     id: 'food-1',
-    type: 'about_partner',
+    type: 'matching',
     category: '🍕 Food',
     questionForManoj: "What's Pooja's comfort food she could eat every single day?",
     questionForPooja: "What does Manoj ALWAYS order when you both eat out?",
@@ -84,7 +84,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: 'food-2',
-    type: 'about_partner',
+    type: 'matching',
     category: '🍕 Food',
     questionForManoj: "Who's the better cook between you two?",
     questionForPooja: "Who's the better cook between you two?",
@@ -95,7 +95,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: 'food-3',
-    type: 'about_partner',
+    type: 'matching',
     category: '🍕 Food',
     questionForManoj: "What does Manoj ALWAYS order when eating out?",
     questionForPooja: "What's Pooja's comfort food she could eat every day?",
@@ -122,7 +122,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   // ═══ 🏙️ BENGALURU (5) ═══
   {
     id: 'blr-1',
-    type: 'about_partner',
+    type: 'matching',
     category: '🏙️ Bengaluru',
     questionForManoj: "What's your go-to date spot in Bengaluru?",
     questionForPooja: "What's your go-to date spot in Bengaluru?",
@@ -133,7 +133,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: 'blr-2',
-    type: 'about_partner',
+    type: 'matching',
     category: '🏙️ Bengaluru',
     questionForManoj: "Which Bengaluru spot holds a special memory for you both?",
     questionForPooja: "Which Bengaluru spot holds a special memory for you both?",
@@ -144,7 +144,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: 'blr-3',
-    type: 'about_partner',
+    type: 'matching',
     category: '🏙️ Bengaluru',
     questionForManoj: "Most spontaneous thing you've done together in Bengaluru?",
     questionForPooja: "Most spontaneous thing you've done together in Bengaluru?",
@@ -171,7 +171,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   // ═══ 😂 FUN & PERSONALITY (7) ═══
   {
     id: 'fun-1',
-    type: 'about_partner',
+    type: 'matching',
     category: '😂 Fun',
     questionForManoj: "What's Pooja's most annoying habit according to you?",
     questionForPooja: "What's Manoj's most annoying habit according to you?",
@@ -182,7 +182,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: 'fun-2',
-    type: 'about_partner',
+    type: 'matching',
     category: '😂 Fun',
     questionForManoj: "What does Pooja think HER worst habit is?",
     questionForPooja: "What does Manoj think HIS worst habit is?",
@@ -193,7 +193,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: 'fun-3',
-    type: 'about_partner',
+    type: 'matching',
     category: '😂 Fun',
     questionForManoj: "Who said 'I love you' first?",
     questionForPooja: "Who said 'I love you' first?",
@@ -204,7 +204,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: 'fun-4',
-    type: 'about_partner',
+    type: 'matching',
     category: '😂 Fun',
     questionForManoj: "Who's more likely to cry at the wedding?",
     questionForPooja: "Who's more likely to cry at the wedding?",
@@ -215,7 +215,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: 'fun-5',
-    type: 'about_partner',
+    type: 'matching',
     category: '😂 Fun',
     questionForManoj: "Longest you've gone without talking during a fight?",
     questionForPooja: "Longest you've gone without talking during a fight?",
@@ -242,7 +242,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   // ═══ 💕 RELATIONSHIP & FUTURE (4) ═══
   {
     id: 'rel-1',
-    type: 'about_partner',
+    type: 'matching',
     category: '💕 Relationship',
     questionForManoj: "What was your first impression of Pooja?",
     questionForPooja: "What was your first impression of Manoj?",
@@ -253,7 +253,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: 'rel-2',
-    type: 'about_partner',
+    type: 'matching',
     category: '💕 Relationship',
     questionForManoj: "How did the marriage topic first come up?",
     questionForPooja: "How did the marriage topic first come up?",
@@ -287,7 +287,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: 'pop-2',
-    type: 'about_partner',
+    type: 'matching',
     category: '🎬 Random',
     questionForManoj: "Who controls the TV remote?",
     questionForPooja: "Who controls the TV remote?",
@@ -305,7 +305,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   },
   {
     id: 'pop-4',
-    type: 'about_partner',
+    type: 'matching',
     category: '🎬 Random',
     questionForManoj: "Your relationship's best-kept secret?",
     questionForPooja: "Your relationship's best-kept secret?",
@@ -330,14 +330,14 @@ export function getQuestionsForPlayer(player: 'manoj' | 'pooja'): Array<{
 }> {
   return QUIZ_QUESTIONS.map((q) => {
     const question =
-      q.type === 'about_partner'
+      q.type === 'matching'
         ? player === 'manoj'
           ? q.questionForManoj!
           : q.questionForPooja!
         : q.question;
 
     const correctAnswer =
-      q.type === 'about_partner'
+      q.type === 'matching'
         ? player === 'manoj'
           ? q.correctForManoj
           : q.correctForPooja
