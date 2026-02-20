@@ -79,7 +79,7 @@ export default function HingeIntro({ player, onComplete }: HingeIntroProps) {
                     </div>
                     <div className="text-gray-800 text-base" style={{ fontFamily: 'sans-serif' }}>
                       {player === 'manoj'
-                        ? 'Finding someone who laughs at my jokes even when they\'re not funny 😅'
+                        ? 'Finding someone jo mujhe chai biscoot khilade with sutta jab mein bolu 😅'
                         : 'Someone who\'ll drive me around Bengaluru without complaining about traffic 🚗'}
                     </div>
                   </div>
