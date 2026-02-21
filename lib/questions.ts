@@ -71,7 +71,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     type: 'matching',
     category: '🍕 Food',
     question: "What do you ALWAYS order when eating out?",
-    options: ['Nepali food', 'Biryani', 'Whatever partner orders (plays safe)'],
+    options: ['Assamese food', 'Biryani', 'Whatever partner orders (plays safe)'],
   },
   {
     id: 'food-4',
@@ -94,7 +94,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     type: 'matching',
     category: '🏙️ Bengaluru',
     question: "What's your go-to date spot in Bengaluru?",
-    options: ['Cubbon Park', 'Indiranagar/Koramangala café', 'A special restaurant'],
+    options: ['Some local food joint', 'Indiranagar/Koramangala café', 'A special restaurant'],
   },
   {
     id: 'blr-2',
@@ -201,13 +201,7 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
 
   // ═══ 🎬 POP CULTURE & RANDOM (4) ═══
   
-  {
-    id: 'pop-2',
-    type: 'matching',
-    category: '🎬 Random',
-    question: "Who controls the TV remote?",
-    options: ['Manoj', 'Pooja', "Whoever grabs it first — survival mode"],
-  },
+
   {
     id: 'pop-3',
     type: 'matching',
