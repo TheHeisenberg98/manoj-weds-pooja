@@ -244,10 +244,10 @@ export default function HingeIntro({ player, onComplete }: HingeIntroProps) {
                 {/* Two profile circles coming together */}
                 <div className="flex items-center justify-center mb-6">
                   <div className="w-24 h-24 rounded-full border-4 border-white overflow-hidden shadow-xl -mr-3 z-10">
-                    <img src="/manoj.jpg" alt="Manoj" className="w-full h-full object-cover" />
+                    <img src={PROFILE_PHOTOS.manoj[0]} alt="Manoj" className="w-full h-full object-cover" />
                   </div>
                   <div className="w-24 h-24 rounded-full border-4 border-white overflow-hidden shadow-xl -ml-3">
-                    <img src="/pooja.jpg" alt="Pooja" className="w-full h-full object-cover" />
+                    <img src={PROFILE_PHOTOS.pooja[0]} alt="Pooja" className="w-full h-full object-cover" />
                   </div>
                 </div>
 
