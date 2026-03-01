@@ -6,8 +6,8 @@ import { useSound } from '@/lib/useSound';
 
 // Profile photos per person — add/remove paths as needed
 const PROFILE_PHOTOS: Record<string, string[]> = {
-  manoj: ['/photos/manoj/1.jpg', '/photos/manoj/2.jpg', '/photos/manoj/3.jpg'],
-  pooja: ['/photos/pooja/1.jpg', '/photos/pooja/2.jpg', '/photos/pooja/3.jpg'],
+  manoj: ['/photos/manoj/1.jpeg', '/photos/manoj/2.jpg', '/photos/manoj/3.jpeg'],
+  pooja: ['/photos/pooja/1.jpg', '/photos/pooja/2.jpeg', '/photos/pooja/3.jpeg'],
 };
 
 interface HingeIntroProps {
