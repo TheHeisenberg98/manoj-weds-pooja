@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import PhoneGate from '@/components/PhoneGate';
 import HingeIntro from '@/components/HingeIntro';
 import PhotoJourney from '@/components/PhotoJourney';
@@ -51,6 +51,16 @@ export default function Home() {
   // Navigate to any stage (for admin skip)
   const goTo = useCallback((s: Stage) => setStage(s), []);
 
+  // Memoize all stage transition callbacks to prevent child re-subscriptions
+  const goToHinge = useCallback(() => goTo('journey'), [goTo]);
+  const goToSwipe = useCallback(() => goTo('swipe'), [goTo]);
+  const goToQuiz = useCallback(() => goTo('quiz'), [goTo]);
+  const goToWaiting = useCallback(() => goTo('waiting'), [goTo]);
+  const goToCompatibility = useCallback(() => goTo('compatibility'), [goTo]);
+  const goToPandit = useCallback(() => goTo('pandit'), [goTo]);
+  const goToDance = useCallback(() => goTo('dance'), [goTo]);
+  const goToGift = useCallback(() => goTo('gift'), [goTo]);
+
   return (
     <div className="min-h-screen relative">
       {/* Background ambient gradients */}
@@ -71,28 +81,28 @@ export default function Home() {
           <PhoneGate onVerified={handleVerified} />
         )}
         {stage === 'hinge' && player && (
-          <HingeIntro player={player} onComplete={() => goTo('journey')} />
+          <HingeIntro player={player} onComplete={goToHinge} />
         )}
         {stage === 'journey' && (
-          <PhotoJourney onComplete={() => goTo('swipe')} />
+          <PhotoJourney onComplete={goToSwipe} />
         )}
         {stage === 'swipe' && player && (
-          <SwipeGame player={player} onComplete={() => goTo('quiz')} />
+          <SwipeGame player={player} onComplete={goToQuiz} />
         )}
         {stage === 'quiz' && player && (
-          <CoupleQuiz player={player} onComplete={() => goTo('waiting')} />
+          <CoupleQuiz player={player} onComplete={goToWaiting} />
         )}
         {stage === 'waiting' && player && (
-          <WaitingRoom player={player} onBothComplete={() => goTo('compatibility')} />
+          <WaitingRoom player={player} onBothComplete={goToCompatibility} />
         )}
         {stage === 'compatibility' && player && (
-          <CompatibilityMeter player={player} onComplete={() => goTo('pandit')} />
+          <CompatibilityMeter player={player} onComplete={goToPandit} />
         )}
         {stage === 'pandit' && player && (
-          <Fortuneteller player={player} onComplete={() => goTo('dance')} />
+          <Fortuneteller player={player} onComplete={goToDance} />
         )}
         {stage === 'dance' && player && (
-          <DancingCouple player={player} onComplete={() => goTo('gift')} />
+          <DancingCouple player={player} onComplete={goToGift} />
         )}
         {stage === 'gift' && player && (
           <GiftReveal player={player} />

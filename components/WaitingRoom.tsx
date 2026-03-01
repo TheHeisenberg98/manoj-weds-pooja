@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { GoldDivider, MandalaRing } from './Ornaments';
 import { supabase, type PlayerID, getPartnerName, getPlayerDisplayName } from '@/lib/supabase';
 
@@ -17,6 +17,21 @@ export default function WaitingRoom({ player, onBothComplete }: WaitingRoomProps
   const partnerName = getPartnerName(player);
   const partnerId = player === 'manoj' ? 'pooja' : 'manoj';
 
+  // Use a ref so the realtime callback always has the latest onBothComplete
+  // without needing it in the useEffect dependency array
+  const onBothCompleteRef = useRef(onBothComplete);
+  onBothCompleteRef.current = onBothComplete;
+
+  // Track whether we've already triggered the transition
+  const hasTriggered = useRef(false);
+
+  const triggerComplete = useCallback(() => {
+    if (hasTriggered.current) return;
+    hasTriggered.current = true;
+    setPartnerDone(true);
+    setTimeout(() => onBothCompleteRef.current(), 2000);
+  }, []);
+
   useEffect(() => {
     // Animate dots
     const dotInterval = setInterval(() => {
@@ -32,17 +47,16 @@ export default function WaitingRoom({ player, onBothComplete }: WaitingRoomProps
         .single();
 
       if (data?.quiz_completed) {
-        setPartnerDone(true);
-        setTimeout(() => onBothComplete(), 2000);
+        triggerComplete();
       }
       setChecking(false);
     }
 
     checkPartner();
 
-    // Subscribe to realtime changes
+    // Subscribe to realtime changes (unique channel name to avoid conflicts)
     const channel = supabase
-      .channel('players-changes')
+      .channel(`waiting-for-${partnerId}`)
       .on(
         'postgres_changes',
         {
@@ -53,18 +67,32 @@ export default function WaitingRoom({ player, onBothComplete }: WaitingRoomProps
         },
         (payload: any) => {
           if (payload.new?.quiz_completed) {
-            setPartnerDone(true);
-            setTimeout(() => onBothComplete(), 2000);
+            triggerComplete();
           }
         }
       )
       .subscribe();
 
+    // Polling fallback every 5s in case realtime event is missed
+    const pollInterval = setInterval(async () => {
+      if (hasTriggered.current) return;
+      const { data } = await supabase
+        .from('players')
+        .select('quiz_completed')
+        .eq('id', partnerId)
+        .single();
+
+      if (data?.quiz_completed) {
+        triggerComplete();
+      }
+    }, 5000);
+
     return () => {
       clearInterval(dotInterval);
+      clearInterval(pollInterval);
       supabase.removeChannel(channel);
     };
-  }, [partnerId, onBothComplete]);
+  }, [partnerId, triggerComplete]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 relative">

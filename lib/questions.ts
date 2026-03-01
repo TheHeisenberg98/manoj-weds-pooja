@@ -9,7 +9,7 @@ export interface QuizQuestion {
 }
 
 // ============================================
-// ALL 30 QUESTIONS — All Matching
+// ALL 28 QUESTIONS — All Matching
 // Both answer the same question, compared at gift reveal
 // ============================================
 
@@ -249,16 +249,19 @@ export function compareMatchingAnswers(
   matched: boolean;
   category: string;
 }> {
-  return QUIZ_QUESTIONS.map((q) => {
-    const manojIdx = manojAnswers[q.id] ?? 0;
-    const poojaIdx = poojaAnswers[q.id] ?? 0;
-    return {
-      questionId: q.id,
-      question: q.question,
-      manojAnswer: q.options[manojIdx],
-      poojaAnswer: q.options[poojaIdx],
-      matched: manojIdx === poojaIdx,
-      category: q.category,
-    };
-  });
+  // Only compare questions that both players have actually answered
+  return QUIZ_QUESTIONS
+    .filter((q) => manojAnswers[q.id] !== undefined && poojaAnswers[q.id] !== undefined)
+    .map((q) => {
+      const manojIdx = manojAnswers[q.id];
+      const poojaIdx = poojaAnswers[q.id];
+      return {
+        questionId: q.id,
+        question: q.question,
+        manojAnswer: q.options[manojIdx],
+        poojaAnswer: q.options[poojaIdx],
+        matched: manojIdx === poojaIdx,
+        category: q.category,
+      };
+    });
 }
