@@ -9,6 +9,7 @@ import { soundEngine, MEME_SOUNDS } from '@/lib/soundEngine';
 
 interface GiftRevealProps {
   player: PlayerID;
+  onReplay?: () => void;
 }
 
 interface MatchResult {
@@ -20,12 +21,14 @@ interface MatchResult {
   category: string;
 }
 
-export default function GiftReveal({ player }: GiftRevealProps) {
+export default function GiftReveal({ player, onReplay }: GiftRevealProps) {
   const [revealed, setRevealed] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [matchResults, setMatchResults] = useState<MatchResult[]>([]);
   const [browniePoints, setBrowniePoints] = useState(0);
   const [showMatches, setShowMatches] = useState(false);
+  const [showReplayOption, setShowReplayOption] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const { play } = useSound();
 
   useEffect(() => {
@@ -54,6 +57,14 @@ export default function GiftReveal({ player }: GiftRevealProps) {
     soundEngine.playFile(MEME_SOUNDS.airhorn);
     setShowConfetti(true);
     play('confetti');
+
+    // Save completed_at timestamp for session management
+    supabase
+      .from('players')
+      .update({ completed_at: new Date().toISOString() })
+      .eq('id', player)
+      .then();
+
     setTimeout(() => {
       setRevealed(true);
       setTimeout(() => {
@@ -64,6 +75,21 @@ export default function GiftReveal({ player }: GiftRevealProps) {
         }
       }, 2000);
     }, 500);
+  };
+
+  const handleResetSession = async () => {
+    setResetting(true);
+    await supabase
+      .from('players')
+      .update({
+        quiz_completed: false,
+        quiz_answers: {},
+        quiz_score: 0,
+        completed_at: null,
+      })
+      .eq('id', player);
+    setResetting(false);
+    onReplay?.();
   };
 
   return (
@@ -187,6 +213,33 @@ export default function GiftReveal({ player }: GiftRevealProps) {
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Replay option — hidden behind a link */}
+            {showMatches && (
+              <div className="mt-10 pt-6 border-t border-royal-gold/10">
+                {!showReplayOption ? (
+                  <button
+                    onClick={() => setShowReplayOption(true)}
+                    className="text-xs text-royal-muted/40 hover:text-royal-muted/60 transition-colors underline underline-offset-2"
+                  >
+                    Want to experience this again?
+                  </button>
+                ) : (
+                  <div className="animate-fade-in">
+                    <p className="text-xs text-royal-muted/50 mb-3">
+                      This will reset your session so you can replay from the start.
+                    </p>
+                    <button
+                      onClick={handleResetSession}
+                      disabled={resetting}
+                      className="px-6 py-2.5 bg-royal-gold/10 border border-royal-gold/30 rounded-xl text-royal-gold text-sm font-display font-semibold tracking-wider uppercase cursor-pointer hover:bg-royal-gold/20 transition-all disabled:opacity-50"
+                    >
+                      {resetting ? 'Resetting...' : 'Reset My Session'}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

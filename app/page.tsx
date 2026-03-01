@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import PhoneGate from '@/components/PhoneGate';
 import HingeIntro from '@/components/HingeIntro';
 import PhotoJourney from '@/components/PhotoJourney';
@@ -12,10 +12,14 @@ import Fortuneteller from '@/components/Fortuneteller';
 import GiftReveal from '@/components/GiftReveal';
 import AdminPanel from '@/components/AdminPanel';
 import SoundToggle from '@/components/SoundToggle';
-import { type PlayerID } from '@/lib/supabase';
+import CooldownScreen from '@/components/CooldownScreen';
+import { supabase, type PlayerID } from '@/lib/supabase';
+
+const COOLDOWN_MS = 2 * 60 * 60 * 1000; // 2 hours
 
 type Stage =
   | 'gate'
+  | 'cooldown'
   | 'hinge'
   | 'journey'
   | 'swipe'
@@ -28,12 +32,44 @@ type Stage =
 export default function Home() {
   const [stage, setStage] = useState<Stage>('gate');
   const [player, setPlayer] = useState<PlayerID | null>(null);
+  const [completedAt, setCompletedAt] = useState<string | null>(null);
   const [showAdmin, setShowAdmin] = useState(false);
   const [adminTapCount, setAdminTapCount] = useState(0);
 
-  const handleVerified = useCallback((p: PlayerID) => {
+  const handleVerified = useCallback(async (p: PlayerID) => {
     setPlayer(p);
-    setStage('hinge');
+
+    // Check if this player has already completed the journey
+    const { data } = await supabase
+      .from('players')
+      .select('completed_at')
+      .eq('id', p)
+      .single();
+
+    if (data?.completed_at) {
+      const elapsed = Date.now() - new Date(data.completed_at).getTime();
+
+      if (elapsed >= COOLDOWN_MS) {
+        // Cooldown expired — auto-reset and let them play fresh
+        await supabase
+          .from('players')
+          .update({
+            quiz_completed: false,
+            quiz_answers: {},
+            quiz_score: 0,
+            completed_at: null,
+          })
+          .eq('id', p);
+        setStage('hinge');
+      } else {
+        // Still in cooldown — show countdown
+        setCompletedAt(data.completed_at);
+        setStage('cooldown');
+      }
+    } else {
+      // Fresh session
+      setStage('hinge');
+    }
   }, []);
 
   // Hidden admin trigger: tap bottom-right corner 5 times
@@ -49,6 +85,13 @@ export default function Home() {
 
   // Navigate to any stage (for admin skip)
   const goTo = useCallback((s: Stage) => setStage(s), []);
+
+  // Replay: reset frontend state back to gate
+  const handleReplay = useCallback(() => {
+    setStage('gate');
+    setPlayer(null);
+    setCompletedAt(null);
+  }, []);
 
   // Memoize all stage transition callbacks to prevent child re-subscriptions
   const goToHinge = useCallback(() => goTo('journey'), [goTo]);
@@ -78,6 +121,9 @@ export default function Home() {
         {stage === 'gate' && (
           <PhoneGate onVerified={handleVerified} />
         )}
+        {stage === 'cooldown' && player && completedAt && (
+          <CooldownScreen player={player} completedAt={completedAt} onReplay={handleReplay} />
+        )}
         {stage === 'hinge' && player && (
           <HingeIntro player={player} onComplete={goToHinge} />
         )}
@@ -100,7 +146,7 @@ export default function Home() {
           <Fortuneteller player={player} onComplete={goToGift} />
         )}
         {stage === 'gift' && player && (
-          <GiftReveal player={player} />
+          <GiftReveal player={player} onReplay={handleReplay} />
         )}
       </div>
 
