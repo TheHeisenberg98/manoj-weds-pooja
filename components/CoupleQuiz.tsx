@@ -59,7 +59,6 @@ export default function CoupleQuiz({ player, onComplete }: QuizProps) {
             quiz_completed: true,
             quiz_answers: { ...existing, ...newAnswers },
             quiz_score: 0,
-            completed_at: new Date().toISOString(),
           });
           if (error) console.error('Save error:', error);
         } catch (err) {

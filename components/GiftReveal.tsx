@@ -32,8 +32,9 @@ export default function GiftReveal({ player, onReplay }: GiftRevealProps) {
   const { play } = useSound();
 
   useEffect(() => {
-    // Fetch both players' answers and compare matching questions
-    async function loadMatches() {
+    let retryTimer: NodeJS.Timeout;
+
+    async function loadMatches(attempt = 0) {
       const { data: players } = await supabase
         .from('players')
         .select('id, quiz_answers')
@@ -44,12 +45,22 @@ export default function GiftReveal({ player, onReplay }: GiftRevealProps) {
         const pooja = players.find((p: any) => p.id === 'pooja');
         if (manoj?.quiz_answers && pooja?.quiz_answers) {
           const results = compareMatchingAnswers(manoj.quiz_answers, pooja.quiz_answers);
-          setMatchResults(results);
-          setBrowniePoints(results.filter((r) => r.matched).length);
+          if (results.length > 0) {
+            setMatchResults(results);
+            setBrowniePoints(results.filter((r) => r.matched).length);
+            return;
+          }
         }
       }
+
+      // Retry up to 3 times with 2s delay if no results (handles timing/caching)
+      if (attempt < 3) {
+        retryTimer = setTimeout(() => loadMatches(attempt + 1), 2000);
+      }
     }
+
     loadMatches();
+    return () => clearTimeout(retryTimer);
   }, []);
 
   const handleReveal = () => {

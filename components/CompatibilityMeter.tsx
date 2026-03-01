@@ -20,14 +20,23 @@ const ANALYSIS_STEPS = [
   { text: 'Final computation...', emoji: '💫', duration: 800 },
 ];
 
-const CATEGORY_SCORES = [
-  { label: 'Emotional Connection', icon: '💕' },
-  { label: 'Adventure Compatibility', icon: '🗺️' },
-  { label: 'Food Sync', icon: '🍕' },
-  { label: 'Future Alignment', icon: '🔮' },
-  { label: 'Humor Match', icon: '😂' },
-  { label: 'Argument Recovery Speed', icon: '⚡' },
-];
+// Category display config — maps question category prefixes to display labels
+const CATEGORY_DISPLAY: Record<string, { label: string; icon: string }> = {
+  '🗺️ Travel': { label: 'Travel Compatibility', icon: '🗺️' },
+  '🍕 Food': { label: 'Food Sync', icon: '🍕' },
+  '🏙️ Bengaluru': { label: 'Bengaluru Bond', icon: '🏙️' },
+  '😂 Fun': { label: 'Fun & Personality Match', icon: '😂' },
+  '💕 Relationship': { label: 'Relationship Alignment', icon: '💕' },
+  '🎬 Random': { label: 'Random Vibes', icon: '🎬' },
+};
+
+interface CategoryScore {
+  label: string;
+  icon: string;
+  matched: number;
+  total: number;
+  percent: number;
+}
 
 export default function CompatibilityMeter({ player, onComplete }: CompatibilityMeterProps) {
   const [phase, setPhase] = useState<'loading' | 'reveal' | 'breakdown'>('loading');
@@ -36,7 +45,7 @@ export default function CompatibilityMeter({ player, onComplete }: Compatibility
   const [displayScore, setDisplayScore] = useState(0);
   const [matchCount, setMatchCount] = useState(0);
   const [totalMatching, setTotalMatching] = useState(0);
-  const [categoryScores, setCategoryScores] = useState<number[]>([]);
+  const [categoryScores, setCategoryScores] = useState<CategoryScore[]>([]);
   const [showCategories, setShowCategories] = useState(false);
 
   useEffect(() => {
@@ -47,9 +56,10 @@ export default function CompatibilityMeter({ player, onComplete }: Compatibility
         .select('id, quiz_answers, quiz_score')
         .in('id', ['manoj', 'pooja']);
 
-      let baseScore = 75; // Guaranteed minimum — it's a wedding gift after all!
       let matched = 0;
       let total = 0;
+      let finalScore = 0;
+      const catMap = new Map<string, { matched: number; total: number }>();
 
       if (players && players.length === 2) {
         const manoj = players.find((p: any) => p.id === 'manoj');
@@ -60,31 +70,37 @@ export default function CompatibilityMeter({ player, onComplete }: Compatibility
           matched = results.filter((r) => r.matched).length;
           total = results.length;
 
-          // Score formula: base 75 + up to 22 from matching (deterministic — both players see the same score)
-          const matchBonus = total > 0 ? Math.round((matched / total) * 22) : 10;
-          baseScore = 75 + matchBonus;
-        }
-
-        // Check swipe game overlap
-        const manojSwipes = manoj?.quiz_answers?.swipe_game || {};
-        const poojaSwipes = pooja?.quiz_answers?.swipe_game || {};
-        const swipeKeys = Object.keys(manojSwipes);
-        const swipeMatches = swipeKeys.filter((k) => manojSwipes[k] === poojaSwipes[k]).length;
-        if (swipeKeys.length > 0) {
-          baseScore = Math.min(99, baseScore + Math.round((swipeMatches / swipeKeys.length) * 3));
+          // Build per-category stats
+          for (const r of results) {
+            const cat = catMap.get(r.category) || { matched: 0, total: 0 };
+            cat.total++;
+            if (r.matched) cat.matched++;
+            catMap.set(r.category, cat);
+          }
         }
       }
 
-      setScore(Math.min(99, baseScore)); // Cap at 99 — 100 is too perfect
+      // Accurate match percentage
+      finalScore = total > 0 ? Math.round((matched / total) * 100) : 0;
+
+      setScore(finalScore);
       setMatchCount(matched);
       setTotalMatching(total);
 
-      // Deterministic category scores derived from match data so both players see the same breakdown
-      const cats = CATEGORY_SCORES.map((_, i) => {
-        // Spread scores around the base using a fixed offset per category
-        const offsets = [3, -5, 7, -2, 4, -6];
-        return Math.min(99, Math.max(70, baseScore + offsets[i]));
-      });
+      // Real per-category breakdown
+      const cats: CategoryScore[] = [];
+      for (const [catKey, display] of Object.entries(CATEGORY_DISPLAY)) {
+        const stats = catMap.get(catKey);
+        if (stats && stats.total > 0) {
+          cats.push({
+            label: display.label,
+            icon: display.icon,
+            matched: stats.matched,
+            total: stats.total,
+            percent: Math.round((stats.matched / stats.total) * 100),
+          });
+        }
+      }
       setCategoryScores(cats);
     }
 
@@ -248,7 +264,7 @@ export default function CompatibilityMeter({ player, onComplete }: Compatibility
           {/* Category breakdown */}
           {showCategories && (
             <div className="space-y-3 mb-8 animate-slide-up">
-              {CATEGORY_SCORES.map((cat, i) => (
+              {categoryScores.map((cat, i) => (
                 <div key={i} className="flex items-center gap-3" style={{ animationDelay: `${i * 150}ms` }}>
                   <span className="text-lg w-8">{cat.icon}</span>
                   <span className="text-sm text-royal-muted flex-1 text-left">{cat.label}</span>
@@ -256,13 +272,13 @@ export default function CompatibilityMeter({ player, onComplete }: Compatibility
                     <div
                       className="h-full bg-gradient-to-r from-royal-gold to-royal-gold-light rounded-full transition-all duration-1000"
                       style={{
-                        width: `${categoryScores[i] || 0}%`,
+                        width: `${cat.percent}%`,
                         transitionDelay: `${i * 200}ms`,
                       }}
                     />
                   </div>
-                  <span className="text-xs text-royal-gold w-10 text-right" style={{ fontFamily: 'sans-serif' }}>
-                    {categoryScores[i]}%
+                  <span className="text-xs text-royal-gold w-14 text-right" style={{ fontFamily: 'sans-serif' }}>
+                    {cat.matched}/{cat.total}
                   </span>
                 </div>
               ))}
