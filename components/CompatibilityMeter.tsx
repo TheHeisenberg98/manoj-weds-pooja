@@ -59,9 +59,9 @@ export default function CompatibilityMeter({ player, onComplete }: Compatibility
           matched = results.filter((r) => r.matched).length;
           total = results.length;
 
-          // Score formula: base 75 + up to 22 from matching + small random for fun
+          // Score formula: base 75 + up to 22 from matching (deterministic — both players see the same score)
           const matchBonus = total > 0 ? Math.round((matched / total) * 22) : 10;
-          baseScore = 75 + matchBonus + Math.floor(Math.random() * 3);
+          baseScore = 75 + matchBonus;
         }
 
         // Check swipe game overlap
@@ -78,10 +78,11 @@ export default function CompatibilityMeter({ player, onComplete }: Compatibility
       setMatchCount(matched);
       setTotalMatching(total);
 
-      // Generate random-ish category scores that average around the total
-      const cats = CATEGORY_SCORES.map(() => {
-        const base = baseScore + (Math.random() * 20 - 10);
-        return Math.min(99, Math.max(70, Math.round(base)));
+      // Deterministic category scores derived from match data so both players see the same breakdown
+      const cats = CATEGORY_SCORES.map((_, i) => {
+        // Spread scores around the base using a fixed offset per category
+        const offsets = [3, -5, 7, -2, 4, -6];
+        return Math.min(99, Math.max(70, baseScore + offsets[i]));
       });
       setCategoryScores(cats);
     }
