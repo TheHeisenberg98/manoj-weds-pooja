@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { GoldDivider, MandalaRing } from './Ornaments';
 import { supabase, type PlayerID } from '@/lib/supabase';
 import { compareMatchingAnswers } from '@/lib/questions';
+import { soundEngine, MEME_SOUNDS } from '@/lib/soundEngine';
 
 interface CompatibilityMeterProps {
   player: PlayerID;
@@ -89,6 +90,9 @@ export default function CompatibilityMeter({ player, onComplete }: Compatibility
 
     computeScore();
 
+    // Start drumroll during analysis
+    soundEngine.drumroll();
+
     // Run analysis steps
     let totalDelay = 0;
 
@@ -98,8 +102,16 @@ export default function CompatibilityMeter({ player, onComplete }: Compatibility
     });
 
     // After all steps, reveal score
-    const finalTimer = setTimeout(() => setPhase('reveal'), totalDelay + 500);
-    return () => clearTimeout(finalTimer);
+    const finalTimer = setTimeout(() => {
+      soundEngine.drumrollStop();
+      soundEngine.tada();
+      soundEngine.playFile(MEME_SOUNDS.vineBoom);
+      setPhase('reveal');
+    }, totalDelay + 500);
+    return () => {
+      clearTimeout(finalTimer);
+      soundEngine.drumrollStop();
+    };
   }, []);
 
   // Animate score counter

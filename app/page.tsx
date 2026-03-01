@@ -9,9 +9,9 @@ import CoupleQuiz from '@/components/CoupleQuiz';
 import WaitingRoom from '@/components/WaitingRoom';
 import CompatibilityMeter from '@/components/CompatibilityMeter';
 import Fortuneteller from '@/components/Fortuneteller';
-import DancingCouple from '@/components/DancingCouple';
 import GiftReveal from '@/components/GiftReveal';
 import AdminPanel from '@/components/AdminPanel';
+import SoundToggle from '@/components/SoundToggle';
 import { type PlayerID } from '@/lib/supabase';
 
 type Stage =
@@ -23,7 +23,6 @@ type Stage =
   | 'waiting'
   | 'compatibility'
   | 'pandit'
-  | 'dance'
   | 'gift';
 
 export default function Home() {
@@ -58,7 +57,6 @@ export default function Home() {
   const goToWaiting = useCallback(() => goTo('waiting'), [goTo]);
   const goToCompatibility = useCallback(() => goTo('compatibility'), [goTo]);
   const goToPandit = useCallback(() => goTo('pandit'), [goTo]);
-  const goToDance = useCallback(() => goTo('dance'), [goTo]);
   const goToGift = useCallback(() => goTo('gift'), [goTo]);
 
   return (
@@ -99,15 +97,15 @@ export default function Home() {
           <CompatibilityMeter player={player} onComplete={goToPandit} />
         )}
         {stage === 'pandit' && player && (
-          <Fortuneteller player={player} onComplete={goToDance} />
-        )}
-        {stage === 'dance' && player && (
-          <DancingCouple player={player} onComplete={goToGift} />
+          <Fortuneteller player={player} onComplete={goToGift} />
         )}
         {stage === 'gift' && player && (
           <GiftReveal player={player} />
         )}
       </div>
+
+      {/* Sound mute/unmute toggle */}
+      <SoundToggle />
 
       {/* Hidden admin trigger — tap bottom-right 5 times */}
       <div

@@ -1,31 +1,155 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { type PlayerID, getPlayerDisplayName } from '@/lib/supabase';
+import { useSound } from '@/lib/useSound';
+
+// Profile photos per person — add/remove paths as needed
+const PROFILE_PHOTOS: Record<string, string[]> = {
+  manoj: ['/photos/manoj/1.jpg', '/photos/manoj/2.jpg', '/photos/manoj/3.jpg'],
+  pooja: ['/photos/pooja/1.jpg', '/photos/pooja/2.jpg', '/photos/pooja/3.jpg'],
+};
 
 interface HingeIntroProps {
   player: PlayerID;
   onComplete: () => void;
 }
 
+/** Swipeable photo carousel with dot indicators */
+function PhotoCarousel({
+  photos,
+  alt,
+  onSwipe,
+}: {
+  photos: string[];
+  alt: string;
+  onSwipe?: () => void;
+}) {
+  const [current, setCurrent] = useState(0);
+  const touchStart = useRef<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const goTo = useCallback(
+    (idx: number) => {
+      const next = Math.max(0, Math.min(photos.length - 1, idx));
+      if (next !== current) {
+        setCurrent(next);
+        onSwipe?.();
+      }
+    },
+    [current, photos.length, onSwipe]
+  );
+
+  const prev = useCallback(() => goTo(current - 1), [goTo, current]);
+  const next = useCallback(() => goTo(current + 1), [goTo, current]);
+
+  // Touch handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStart.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStart.current === null) return;
+    const diff = touchStart.current - e.changedTouches[0].clientX;
+    touchStart.current = null;
+    if (Math.abs(diff) < 40) return; // Ignore small movements
+    if (diff > 0) next();
+    else prev();
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className="w-full aspect-[3/4] relative overflow-hidden select-none"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Photos track */}
+      <div
+        className="flex h-full transition-transform duration-300 ease-out"
+        style={{ transform: `translateX(-${current * 100}%)` }}
+      >
+        {photos.map((src, i) => (
+          <img
+            key={i}
+            src={src}
+            alt={`${alt} photo ${i + 1}`}
+            className="w-full h-full object-cover flex-shrink-0"
+            draggable={false}
+          />
+        ))}
+      </div>
+
+      {/* Desktop click zones — left/right halves */}
+      {current > 0 && (
+        <button
+          onClick={prev}
+          className="absolute left-0 top-0 w-1/3 h-full z-10 cursor-pointer"
+          aria-label="Previous photo"
+        />
+      )}
+      {current < photos.length - 1 && (
+        <button
+          onClick={next}
+          className="absolute right-0 top-0 w-1/3 h-full z-10 cursor-pointer"
+          aria-label="Next photo"
+        />
+      )}
+
+      {/* Dot indicators */}
+      <div className="absolute top-3 left-0 right-0 flex justify-center gap-1.5 z-20">
+        {photos.map((_, i) => (
+          <div
+            key={i}
+            className="h-[3px] rounded-full transition-all duration-300"
+            style={{
+              width: photos.length <= 4 ? 48 : 32,
+              background: i === current ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)',
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Arrow hints on desktop — appear on hover */}
+      {current > 0 && (
+        <div className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 flex items-center justify-center text-white/70 opacity-0 hover:opacity-100 transition-opacity pointer-events-none z-20">
+          ‹
+        </div>
+      )}
+      {current < photos.length - 1 && (
+        <div className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/30 flex items-center justify-center text-white/70 opacity-0 hover:opacity-100 transition-opacity pointer-events-none z-20">
+          ›
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function HingeIntro({ player, onComplete }: HingeIntroProps) {
   const [phase, setPhase] = useState<'story' | 'swipe' | 'match' | 'done'>('story');
   const [showProfile, setShowProfile] = useState(false);
+  const { play } = useSound();
 
   const playerName = getPlayerDisplayName(player);
   const partnerName = player === 'manoj' ? 'Pooja' : 'Manoj';
+  const partnerId = player === 'manoj' ? 'pooja' : 'manoj';
+  const photos = PROFILE_PHOTOS[partnerId];
 
   useEffect(() => {
-    // Auto-progress the intro
     const t1 = setTimeout(() => setShowProfile(true), 1500);
     return () => clearTimeout(t1);
   }, []);
 
   const handleSwipe = () => {
     setPhase('match');
+    play('matchReveal');
     setTimeout(() => setPhase('done'), 3500);
     setTimeout(() => onComplete(), 5000);
   };
+
+  const handlePhotoSwipe = useCallback(() => {
+    play('pageTurn');
+  }, [play]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden">
@@ -54,15 +178,15 @@ export default function HingeIntro({ player, onComplete }: HingeIntroProps) {
             {showProfile && (
               <div className="animate-slide-up">
                 <div className="bg-white rounded-3xl overflow-hidden shadow-2xl text-left">
-                  {/* Profile photo */}
-                  <div className="w-full aspect-[3/4] relative">
-                    <img
-                      src={player === 'manoj' ? '/pooja.jpg' : '/manoj.jpg'}
+                  {/* Swipeable profile photo carousel */}
+                  <div className="relative">
+                    <PhotoCarousel
+                      photos={photos}
                       alt={partnerName}
-                      className="w-full h-full object-cover"
+                      onSwipe={handlePhotoSwipe}
                     />
                     {/* Hinge-style prompt overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-5">
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-5 z-30 pointer-events-none">
                       <div className="text-white">
                         <div className="text-2xl font-bold" style={{ fontFamily: 'sans-serif' }}>
                           {partnerName}, <span className="font-normal">26</span>

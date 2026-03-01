@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { OrnateCorner, GoldDivider, MandalaRing, Confetti } from './Ornaments';
 import { supabase, type PlayerID } from '@/lib/supabase';
 import { compareMatchingAnswers } from '@/lib/questions';
+import { useSound } from '@/lib/useSound';
+import { soundEngine, MEME_SOUNDS } from '@/lib/soundEngine';
 
 interface GiftRevealProps {
   player: PlayerID;
@@ -24,6 +26,7 @@ export default function GiftReveal({ player }: GiftRevealProps) {
   const [matchResults, setMatchResults] = useState<MatchResult[]>([]);
   const [browniePoints, setBrowniePoints] = useState(0);
   const [showMatches, setShowMatches] = useState(false);
+  const { play } = useSound();
 
   useEffect(() => {
     // Fetch both players' answers and compare matching questions
@@ -47,10 +50,19 @@ export default function GiftReveal({ player }: GiftRevealProps) {
   }, []);
 
   const handleReveal = () => {
+    play('grandReveal');
+    soundEngine.playFile(MEME_SOUNDS.airhorn);
     setShowConfetti(true);
+    play('confetti');
     setTimeout(() => {
       setRevealed(true);
-      setTimeout(() => setShowMatches(true), 2000);
+      setTimeout(() => {
+        setShowMatches(true);
+        // Play "emotional damage" if less than half the answers matched
+        if (matchResults.length > 0 && browniePoints < matchResults.length / 2) {
+          soundEngine.playFile(MEME_SOUNDS.emotionalDamage);
+        }
+      }, 2000);
     }, 500);
   };
 

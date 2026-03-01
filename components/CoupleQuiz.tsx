@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { GoldDivider } from './Ornaments';
 import { getQuestionsForPlayer } from '@/lib/questions';
 import { supabase, type PlayerID, getPlayerDisplayName, getPartnerName } from '@/lib/supabase';
+import { useSound } from '@/lib/useSound';
 
 interface QuizProps {
   player: PlayerID;
@@ -18,6 +19,7 @@ export default function CoupleQuiz({ player, onComplete }: QuizProps) {
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [showResult, setShowResult] = useState(false);
   const [saving, setSaving] = useState(false);
+  const { play } = useSound();
 
   const question = questions[current];
   const playerName = getPlayerDisplayName(player);
@@ -27,6 +29,7 @@ export default function CoupleQuiz({ player, onComplete }: QuizProps) {
     if (answered) return;
     setSelected(idx);
     setAnswered(true);
+    play('click');
 
     const newAnswers = { ...answers, [question.id]: idx };
     setAnswers(newAnswers);
@@ -39,6 +42,7 @@ export default function CoupleQuiz({ player, onComplete }: QuizProps) {
       } else {
         setSaving(true);
         setShowResult(true);
+        play('completionChime');
 
         try {
           // Fetch existing data (swipe game answers) and merge

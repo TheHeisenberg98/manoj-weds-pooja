@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { GoldDivider, MandalaRing } from './Ornaments';
 import { supabase, type PlayerID, getPartnerName, getPlayerDisplayName } from '@/lib/supabase';
+import { soundEngine } from '@/lib/soundEngine';
 
 interface WaitingRoomProps {
   player: PlayerID;
@@ -29,10 +30,15 @@ export default function WaitingRoom({ player, onBothComplete }: WaitingRoomProps
     if (hasTriggered.current) return;
     hasTriggered.current = true;
     setPartnerDone(true);
+    soundEngine.ambientStop();
+    soundEngine.celebration();
     setTimeout(() => onBothCompleteRef.current(), 2000);
   }, []);
 
   useEffect(() => {
+    // Start ambient loop
+    soundEngine.ambientLoop();
+
     // Animate dots
     const dotInterval = setInterval(() => {
       setDots((d) => (d.length >= 3 ? '' : d + '.'));
@@ -91,6 +97,7 @@ export default function WaitingRoom({ player, onBothComplete }: WaitingRoomProps
       clearInterval(dotInterval);
       clearInterval(pollInterval);
       supabase.removeChannel(channel);
+      soundEngine.ambientStop();
     };
   }, [partnerId, triggerComplete]);
 

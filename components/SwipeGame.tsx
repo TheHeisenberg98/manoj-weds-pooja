@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { GoldDivider } from './Ornaments';
 import { supabase, type PlayerID, getPlayerDisplayName, getPartnerName } from '@/lib/supabase';
+import { useSound } from '@/lib/useSound';
 
 const SCENARIOS = [
   { id: 'wml-1', text: "Forget their wedding anniversary", emoji: '📅' },
@@ -33,6 +34,7 @@ export default function SwipeGame({ player, onComplete }: SwipeGameProps) {
   const [swipeDir, setSwipeDir] = useState<'left' | 'right' | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [saving, setSaving] = useState(false);
+  const { play } = useSound();
 
   const scenario = SCENARIOS[current];
   const playerName = getPlayerDisplayName(player);
@@ -40,12 +42,14 @@ export default function SwipeGame({ player, onComplete }: SwipeGameProps) {
   const handleSwipe = async (choice: 'manoj' | 'pooja') => {
     const dir = choice === 'manoj' ? 'left' : 'right';
     setSwipeDir(dir);
+    play('whoosh');
 
     const newAnswers = { ...answers, [scenario.id]: choice };
     setAnswers(newAnswers);
 
     setTimeout(() => {
       setSwipeDir(null);
+      play('pop');
       if (current < SCENARIOS.length - 1) {
         setCurrent((c) => c + 1);
       } else {

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { GoldDivider } from './Ornaments';
 import { supabase } from '@/lib/supabase';
+import { useSound } from '@/lib/useSound';
 
 interface Photo {
   id: string;
@@ -78,28 +79,38 @@ function PhotoCard({ photo, index }: { photo: Photo; index: number }) {
   );
 }
 
-function ChapterSection({ chapter, index }: { chapter: Chapter; index: number }) {
-  const [visible, setVisible] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+function ChapterSection({ chapter, index, onVisible }: { chapter: Chapter; index: number; onVisible?: () => void }) {
+  const [headingVisible, setHeadingVisible] = useState(false);
+  const headingRef = useRef<HTMLDivElement>(null);
+  const firedRef = useRef(false);
 
+  // Observe the heading separately with a low threshold so it appears early
   useEffect(() => {
     const obs = new IntersectionObserver(
-      ([e]) => { if (e.isIntersecting) setVisible(true); },
-      { threshold: 0.2 }
+      ([e]) => {
+        if (e.isIntersecting && !firedRef.current) {
+          firedRef.current = true;
+          setHeadingVisible(true);
+          onVisible?.();
+        }
+      },
+      { threshold: 0.1, rootMargin: '0px 0px 80px 0px' }
     );
-    if (ref.current) obs.observe(ref.current);
+    if (headingRef.current) obs.observe(headingRef.current);
     return () => obs.disconnect();
-  }, []);
+  }, [onVisible]);
 
   if (chapter.photos.length === 0) return null;
 
   return (
-    <div ref={ref} className="mb-16 py-5">
+    <div className="mb-16 py-5">
+      {/* Chapter heading — appears first, before photos */}
       <div
-        className="text-center mb-8 transition-all duration-700"
+        ref={headingRef}
+        className="text-center mb-8 transition-all duration-500"
         style={{
-          opacity: visible ? 1 : 0,
-          transform: visible ? 'translateY(0)' : 'translateY(30px)',
+          opacity: headingVisible ? 1 : 0,
+          transform: headingVisible ? 'translateY(0)' : 'translateY(20px)',
         }}
       >
         <div className="text-xs tracking-[5px] text-royal-gold/50 uppercase mb-2">
@@ -112,6 +123,7 @@ function ChapterSection({ chapter, index }: { chapter: Chapter; index: number })
         <p className="text-[15px] text-royal-muted italic mt-1">{chapter.subtitle}</p>
         <div className="w-12 h-px bg-gradient-to-r from-transparent via-royal-gold to-transparent mx-auto mt-4" />
       </div>
+      {/* Photos fade in independently, each with their own observer */}
       {chapter.photos.map((photo, i) => (
         <PhotoCard key={photo.id} photo={photo} index={i} />
       ))}
@@ -126,6 +138,13 @@ interface PhotoJourneyProps {
 export default function PhotoJourney({ onComplete }: PhotoJourneyProps) {
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [loading, setLoading] = useState(true);
+  const { play } = useSound();
+
+  // Start bg music on mount, stop on unmount
+  useEffect(() => {
+    play('bgMusicStart');
+    return () => { play('bgMusicStop'); };
+  }, [play]);
 
   useEffect(() => {
     async function loadPhotos() {
@@ -198,7 +217,7 @@ export default function PhotoJourney({ onComplete }: PhotoJourneyProps) {
 
       {/* Chapters */}
       {chapters.map((ch, i) => (
-        <ChapterSection key={ch.id} chapter={ch} index={i} />
+        <ChapterSection key={ch.id} chapter={ch} index={i} onVisible={() => play('pageTurn')} />
       ))}
 
       {/* CTA */}

@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { OrnateCorner, GoldDivider, MandalaRing } from './Ornaments';
 import { getPlayerByPhone, type PlayerID } from '@/lib/supabase';
+import { useSound } from '@/lib/useSound';
 
 interface PhoneGateProps {
   onVerified: (player: PlayerID) => void;
@@ -15,6 +16,7 @@ export default function PhoneGate({ onVerified }: PhoneGateProps) {
   const [error, setError] = useState('');
   const [showVerifying, setShowVerifying] = useState(false);
   const otpRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
+  const { play } = useSound();
 
   const handlePhoneSend = () => {
     const player = getPlayerByPhone(phone);
@@ -36,6 +38,7 @@ export default function PhoneGate({ onVerified }: PhoneGateProps) {
       setShowVerifying(true);
       setTimeout(() => {
         setStep('verified');
+        play('chime');
         const player = getPlayerByPhone(phone)!;
         setTimeout(() => onVerified(player), 1500);
       }, 1800);

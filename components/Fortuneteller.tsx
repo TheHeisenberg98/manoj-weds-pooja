@@ -3,42 +3,51 @@
 import { useState, useEffect } from 'react';
 import { GoldDivider, MandalaRing } from './Ornaments';
 import { type PlayerID } from '@/lib/supabase';
+import { useSound } from '@/lib/useSound';
+import { soundEngine, MEME_SOUNDS } from '@/lib/soundEngine';
 
 const PREDICTIONS = [
   {
     category: 'Griha Pravesh 🏠',
     prediction: "Pehle 6 mahine toh dono ek doosre ke saath adjust karenge... AC ka temperature biggest issue hoga. Manoj chahega 18°C, Pooja bolegi 24°C. Compromise hoga 21°C pe, but secretly dono raat ko apne taraf set karenge. 😤❄️",
     stars: 4,
+    funny: false,
   },
   {
     category: 'Financial Yoga 💰',
     prediction: "Joint account khulega, lekin secret Swiggy expenses chhupane ke liye dono ke paas ek 'emergency fund' bhi hoga. Pooja ka emergency = shoes. Manoj ka emergency = gadgets. Pandit ji kehte hain — sab theek hai, budget banana band karo. 🛍️",
     stars: 3,
+    funny: true,
   },
   {
     category: 'Travel Dasha ✈️',
     prediction: "2026 mein ek international trip pakka hai. Manoj bolega Bali, Pooja bolegi Switzerland. Final destination hoga... Goa. Kyunki last minute mein sab plans wahi jaate hain. Stars confirm karte hain — India se bahar jaana mushkil hai. 🏖️",
     stars: 5,
+    funny: false,
   },
   {
     category: 'Kitchen Graha 🍳',
     prediction: "Cooking duties ka rotation banega, par actually Zomato aur Swiggy dono ke saath long-term relationship chal raha hai. Ek din Manoj Maggi banayega aur act karega jaise Gordon Ramsay hai. Pooja politely khaayegi aur secretly bread order karegi. 🍝",
     stars: 3,
+    funny: true,
   },
   {
     category: 'Argument Retrograde 🌀',
     prediction: "Monthly ek chhota sa fight hoga. Reason: 'Tune meri baat suni hi nahi.' Duration: exactly 4.5 hours. Resolution: 'Chal kuch khaate hain.' Repeat cycle har mahine. Saturn kehta hai yeh pattern 50 saal chalega. 💕",
     stars: 4,
+    funny: false,
   },
   {
     category: 'Baby Nakshatra 👶',
     prediction: "Abhi nahi abhi nahi... par jab bhi hoga, Manoj strict parent banne ki koshish karega aur 2 minute mein pighal jaayega. Pooja actually strict hogi but sabko lagega Manoj strict hai. Classic parent switcheroo. 😂",
     stars: 5,
+    funny: false,
   },
   {
     category: 'Social Media Rahu 📱',
     prediction: "Instagram pe couple goals post karenge, but real life mein ek dusre ki stories skip karenge. Manoj ka screen time: 6 hours. Pooja bolegi 'phone rakh', while her own screen time is 7 hours. Irony, thy name is marriage. 📵",
     stars: 3,
+    funny: true,
   },
 ];
 
@@ -52,19 +61,33 @@ export default function Fortuneteller({ player, onComplete }: FortunetellerProps
   const [currentPrediction, setCurrentPrediction] = useState(0);
   const [revealedPredictions, setRevealedPredictions] = useState<number[]>([]);
   const [showPrediction, setShowPrediction] = useState(false);
+  const { play } = useSound();
+
+  const playPredictionSound = (pred: typeof PREDICTIONS[number]) => {
+    play('mystical');
+    if (pred.funny) {
+      setTimeout(() => soundEngine.playFile(MEME_SOUNDS.bruh), 800);
+    }
+  };
 
   const startReading = () => {
     setPhase('reading');
-    setTimeout(() => setShowPrediction(true), 1000);
+    setTimeout(() => {
+      setShowPrediction(true);
+      playPredictionSound(PREDICTIONS[0]);
+    }, 1000);
   };
 
   const nextPrediction = () => {
     setShowPrediction(false);
+    play('bell');
     if (currentPrediction < PREDICTIONS.length - 1) {
       setTimeout(() => {
+        const nextIdx = currentPrediction + 1;
         setCurrentPrediction((c) => c + 1);
         setRevealedPredictions((r) => [...r, currentPrediction]);
         setShowPrediction(true);
+        playPredictionSound(PREDICTIONS[nextIdx]);
       }, 600);
     } else {
       setPhase('complete');
