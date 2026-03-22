@@ -1,69 +1,77 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { GoldDivider, MandalaRing } from './Ornaments';
-import { type PlayerID } from '@/lib/supabase';
 import { useSound } from '@/lib/useSound';
 import { soundEngine, MEME_SOUNDS } from '@/lib/soundEngine';
+import type { StageProps } from '@/lib/types';
 
-const PREDICTIONS = [
+const DEFAULT_PREDICTIONS = [
   {
-    category: 'Griha Pravesh 🏠',
-    prediction: "Pehle 6 mahine toh dono ek doosre ke saath adjust karenge... AC ka temperature biggest issue hoga. Manoj chahega 18°C, Pooja bolegi 24°C. Compromise hoga 21°C pe, but secretly dono raat ko apne taraf set karenge. 😤❄️",
+    category: 'Home Life 🏠',
+    prediction: "The first 6 months will be an adjustment period... the AC temperature will be the biggest issue. One wants 18°C, the other says 24°C. Compromise at 21°C, but both secretly change it at night. 😤❄️",
     stars: 4,
     funny: false,
   },
   {
     category: 'Financial Yoga 💰',
-    prediction: "Joint account khulega, lekin secret Swiggy expenses chhupane ke liye dono ke paas ek 'emergency fund' bhi hoga. Pooja ka emergency = shoes. Manoj ka emergency = gadgets. Pandit ji kehte hain — sab theek hai, budget banana band karo. 🛍️",
+    prediction: "A joint account will be opened, but both will maintain a secret 'emergency fund' for personal splurges. One's emergency = shoes. The other's = gadgets. The stars say — stop budgeting. 🛍️",
     stars: 3,
     funny: true,
   },
   {
     category: 'Travel Dasha ✈️',
-    prediction: "2026 mein ek international trip pakka hai. Manoj bolega Bali, Pooja bolegi Switzerland. Final destination hoga... Goa. Kyunki last minute mein sab plans wahi jaate hain. Stars confirm karte hain — India se bahar jaana mushkil hai. 🏖️",
+    prediction: "An international trip is definitely happening. One will suggest Bali, the other Switzerland. Final destination? Somewhere local. Because last-minute plans always win. The stars confirm — adventures await. 🏖️",
     stars: 5,
     funny: false,
   },
   {
     category: 'Kitchen Graha 🍳',
-    prediction: "Cooking duties ka rotation banega, par actually Zomato aur Swiggy dono ke saath long-term relationship chal raha hai. Ek din Manoj Maggi banayega aur act karega jaise Gordon Ramsay hai. Pooja politely khaayegi aur secretly bread order karegi. 🍝",
+    prediction: "Cooking duties will rotate, but food delivery apps will be the real winners. One day someone will make Maggi and act like a master chef. The other will politely eat it and secretly order pizza. 🍝",
     stars: 3,
     funny: true,
   },
   {
     category: 'Argument Retrograde 🌀',
-    prediction: "Monthly ek chhota sa fight hoga. Reason: 'Tune meri baat suni hi nahi.' Duration: exactly 4.5 hours. Resolution: 'Chal kuch khaate hain.' Repeat cycle har mahine. Saturn kehta hai yeh pattern 50 saal chalega. 💕",
+    prediction: "A small monthly disagreement is inevitable. Reason: 'You never listen.' Duration: exactly 4.5 hours. Resolution: 'Let's eat something.' This pattern will repeat for 50 years. 💕",
     stars: 4,
     funny: false,
   },
-  {
-    category: 'Baby Nakshatra 👶',
-    prediction: "Abhi nahi abhi nahi... par jab bhi hoga, Manoj strict parent banne ki koshish karega aur 2 minute mein pighal jaayega. Pooja actually strict hogi but sabko lagega Manoj strict hai. Classic parent switcheroo. 😂",
-    stars: 5,
-    funny: false,
-  },
-  {
-    category: 'Social Media Rahu 📱',
-    prediction: "Instagram pe couple goals post karenge, but real life mein ek dusre ki stories skip karenge. Manoj ka screen time: 6 hours. Pooja bolegi 'phone rakh', while her own screen time is 7 hours. Irony, thy name is marriage. 📵",
-    stars: 3,
-    funny: true,
-  },
 ];
 
-interface FortunetellerProps {
-  player: PlayerID;
-  onComplete: () => void;
+interface PredictionItem {
+  category: string;
+  prediction: string;
+  stars: number;
+  funny: boolean;
 }
 
-export default function Fortuneteller({ player, onComplete }: FortunetellerProps) {
+export default function Fortuneteller({
+  experience,
+  participant,
+  stageConfig,
+  onComplete,
+}: StageProps<'fortune_teller'>) {
+  const personAName = experience.person_a_name;
+  const personBName = experience.person_b_name;
+
+  // Use fortunes from config, or fall back to defaults
+  const predictions: PredictionItem[] = stageConfig.fortunes && stageConfig.fortunes.length > 0
+    ? stageConfig.fortunes.map((text, i) => ({
+        category: `Prediction ${i + 1} 🔮`,
+        prediction: text,
+        stars: Math.floor(Math.random() * 2) + 4,
+        funny: i % 2 === 1,
+      }))
+    : DEFAULT_PREDICTIONS;
+
   const [phase, setPhase] = useState<'intro' | 'reading' | 'complete'>('intro');
   const [currentPrediction, setCurrentPrediction] = useState(0);
   const [revealedPredictions, setRevealedPredictions] = useState<number[]>([]);
   const [showPrediction, setShowPrediction] = useState(false);
   const { play } = useSound();
 
-  const playPredictionSound = (pred: typeof PREDICTIONS[number]) => {
+  const playPredictionSound = (pred: PredictionItem) => {
     play('mystical');
     if (pred.funny) {
       setTimeout(() => soundEngine.playFile(MEME_SOUNDS.bruh), 800);
@@ -74,27 +82,27 @@ export default function Fortuneteller({ player, onComplete }: FortunetellerProps
     setPhase('reading');
     setTimeout(() => {
       setShowPrediction(true);
-      playPredictionSound(PREDICTIONS[0]);
+      playPredictionSound(predictions[0]);
     }, 1000);
   };
 
   const nextPrediction = () => {
     setShowPrediction(false);
     play('bell');
-    if (currentPrediction < PREDICTIONS.length - 1) {
+    if (currentPrediction < predictions.length - 1) {
       setTimeout(() => {
         const nextIdx = currentPrediction + 1;
         setCurrentPrediction((c) => c + 1);
         setRevealedPredictions((r) => [...r, currentPrediction]);
         setShowPrediction(true);
-        playPredictionSound(PREDICTIONS[nextIdx]);
+        playPredictionSound(predictions[nextIdx]);
       }, 600);
     } else {
       setPhase('complete');
     }
   };
 
-  const prediction = PREDICTIONS[currentPrediction];
+  const prediction = predictions[currentPrediction];
 
   return (
     <div className="py-10 relative">
@@ -102,7 +110,6 @@ export default function Fortuneteller({ player, onComplete }: FortunetellerProps
 
       {phase === 'intro' && (
         <div className="text-center animate-fade-in relative z-10">
-          {/* Pandit avatar */}
           <div className="relative inline-block mb-6">
             <div className="w-32 h-32 rounded-full bg-gradient-to-br from-orange-600/30 to-yellow-600/20 border-2 border-royal-gold/40 flex items-center justify-center text-6xl mx-auto">
               🧘
@@ -119,9 +126,9 @@ export default function Fortuneteller({ player, onComplete }: FortunetellerProps
             &ldquo;Mujhe sab dikhai deta hai...&rdquo;
           </p>
           <p className="text-xs text-royal-muted/60 mb-8 leading-relaxed max-w-xs mx-auto">
-            Our highly advanced AI Pandit has analyzed the cosmic alignment 
-            of Manoj & Pooja&apos;s stars, planets, and WhatsApp chat patterns 
-            to predict their married life.
+            Our highly advanced AI Pandit has analyzed the cosmic alignment
+            of {personAName} & {personBName}&apos;s stars, planets, and WhatsApp chat patterns
+            to predict their future together.
           </p>
 
           <button
@@ -135,9 +142,8 @@ export default function Fortuneteller({ player, onComplete }: FortunetellerProps
 
       {phase === 'reading' && (
         <div className="relative z-10">
-          {/* Progress */}
           <div className="flex gap-1.5 mb-6 justify-center">
-            {PREDICTIONS.map((_, i) => (
+            {predictions.map((_, i) => (
               <div
                 key={i}
                 className="h-1 rounded-full transition-all duration-300"
@@ -151,15 +157,13 @@ export default function Fortuneteller({ player, onComplete }: FortunetellerProps
 
           <div className="text-center mb-4">
             <span className="text-xs text-royal-gold/50">
-              Prediction {currentPrediction + 1} of {PREDICTIONS.length}
+              Prediction {currentPrediction + 1} of {predictions.length}
             </span>
           </div>
 
           {showPrediction ? (
             <div key={currentPrediction} className="animate-slide-up">
-              {/* Prediction card */}
               <div className="bg-gradient-to-br from-orange-900/20 to-royal-gold/[0.06] border border-royal-gold/20 rounded-2xl p-6 mb-6">
-                {/* Category */}
                 <div className="text-center mb-4">
                   <div className="inline-block px-4 py-1.5 bg-royal-gold/10 border border-royal-gold/20 rounded-full">
                     <span className="text-sm text-royal-gold font-semibold">
@@ -168,7 +172,6 @@ export default function Fortuneteller({ player, onComplete }: FortunetellerProps
                   </div>
                 </div>
 
-                {/* Stars */}
                 <div className="flex justify-center gap-1 mb-4">
                   {[...Array(5)].map((_, i) => (
                     <span
@@ -181,19 +184,17 @@ export default function Fortuneteller({ player, onComplete }: FortunetellerProps
                   ))}
                 </div>
 
-                {/* Prediction text */}
                 <p className="text-base text-royal-cream leading-relaxed">
                   {prediction.prediction}
                 </p>
               </div>
 
-              {/* Next button */}
               <div className="text-center">
                 <button
                   onClick={nextPrediction}
                   className="px-8 py-3 bg-royal-gold/10 border border-royal-gold/30 rounded-xl text-royal-gold text-sm font-display font-semibold tracking-wider uppercase cursor-pointer hover:bg-royal-gold/20 transition-all"
                 >
-                  {currentPrediction < PREDICTIONS.length - 1 ? 'Next Prediction →' : 'Complete Reading ✨'}
+                  {currentPrediction < predictions.length - 1 ? 'Next Prediction →' : 'Complete Reading ✨'}
                 </button>
               </div>
             </div>

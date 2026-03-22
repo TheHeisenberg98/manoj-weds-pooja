@@ -2,31 +2,22 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { GoldDivider } from './Ornaments';
-import { supabase } from '@/lib/supabase';
 import { useSound } from '@/lib/useSound';
+import type { StageProps } from '@/lib/types';
 
-interface Photo {
-  id: string;
-  src: string;
+interface PhotoItem {
+  url: string;
   caption: string;
 }
 
-interface Chapter {
-  id: string;
+interface ChapterItem {
   title: string;
   subtitle: string;
   emoji: string;
-  photos: Photo[];
+  photos: PhotoItem[];
 }
 
-const CHAPTER_META = [
-  { id: 'childhood', title: 'The Early Days', subtitle: 'Where it all began', emoji: '🌅' },
-  { id: 'college', title: 'College Chronicles', subtitle: 'When boys became brothers', emoji: '🎓' },
-  { id: 'squad', title: 'The Squad', subtitle: 'Trip tales & midnight stories', emoji: '🏔️' },
-  { id: 'couple', title: 'Manoj & Pooja', subtitle: 'When he found his forever', emoji: '💕' },
-];
-
-function PhotoCard({ photo, index }: { photo: Photo; index: number }) {
+function PhotoCard({ photo, index }: { photo: PhotoItem; index: number }) {
   const [visible, setVisible] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -51,9 +42,9 @@ function PhotoCard({ photo, index }: { photo: Photo; index: number }) {
       }}
     >
       <div className="bg-royal-gold/[0.06] border border-royal-gold/15 rounded-2xl overflow-hidden">
-        {photo.src ? (
+        {photo.url ? (
           <img
-            src={photo.src}
+            src={photo.url}
             alt={photo.caption || ''}
             className="w-full aspect-[4/3] object-cover"
             loading="lazy"
@@ -79,12 +70,11 @@ function PhotoCard({ photo, index }: { photo: Photo; index: number }) {
   );
 }
 
-function ChapterSection({ chapter, index, onVisible }: { chapter: Chapter; index: number; onVisible?: () => void }) {
+function ChapterSection({ chapter, index, onVisible }: { chapter: ChapterItem; index: number; onVisible?: () => void }) {
   const [headingVisible, setHeadingVisible] = useState(false);
   const headingRef = useRef<HTMLDivElement>(null);
   const firedRef = useRef(false);
 
-  // Observe the heading separately with a low threshold so it appears early
   useEffect(() => {
     const obs = new IntersectionObserver(
       ([e]) => {
@@ -104,7 +94,6 @@ function ChapterSection({ chapter, index, onVisible }: { chapter: Chapter; index
 
   return (
     <div className="mb-16 py-5">
-      {/* Chapter heading — appears first, before photos */}
       <div
         ref={headingRef}
         className="text-center mb-8 transition-all duration-500"
@@ -123,78 +112,31 @@ function ChapterSection({ chapter, index, onVisible }: { chapter: Chapter; index
         <p className="text-[15px] text-royal-muted italic mt-1">{chapter.subtitle}</p>
         <div className="w-12 h-px bg-gradient-to-r from-transparent via-royal-gold to-transparent mx-auto mt-4" />
       </div>
-      {/* Photos fade in independently, each with their own observer */}
       {chapter.photos.map((photo, i) => (
-        <PhotoCard key={photo.id} photo={photo} index={i} />
+        <PhotoCard key={`${index}-${i}`} photo={photo} index={i} />
       ))}
     </div>
   );
 }
 
-interface PhotoJourneyProps {
-  onComplete: () => void;
-}
-
-export default function PhotoJourney({ onComplete }: PhotoJourneyProps) {
-  const [chapters, setChapters] = useState<Chapter[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function PhotoJourney({
+  experience,
+  stageConfig,
+  onComplete,
+}: StageProps<'photo_journey'>) {
+  const chapters = stageConfig.chapters ?? [];
   const { play } = useSound();
 
-  // Start bg music on mount, stop on unmount
   useEffect(() => {
     play('bgMusicStart');
     return () => { play('bgMusicStop'); };
   }, [play]);
 
-  useEffect(() => {
-    async function loadPhotos() {
-      const { data } = await supabase
-        .from('photos')
-        .select('*')
-        .order('photo_order');
-
-      const builtChapters: Chapter[] = CHAPTER_META.map((meta) => {
-        const chapterPhotos = (data || [])
-          .filter((p: any) => p.chapter === meta.id)
-          .map((p: any) => {
-            const { data: urlData } = supabase.storage
-              .from('wedding-photos')
-              .getPublicUrl(p.storage_path);
-            return {
-              id: p.id,
-              src: urlData.publicUrl,
-              caption: p.caption || '',
-            };
-          });
-
-        // If no photos uploaded for this chapter, add placeholders
-        if (chapterPhotos.length === 0) {
-          return {
-            ...meta,
-            photos: [
-              { id: `${meta.id}-ph-1`, src: '', caption: 'Photo coming soon...' },
-              { id: `${meta.id}-ph-2`, src: '', caption: 'Photo coming soon...' },
-            ],
-          };
-        }
-
-        return { ...meta, photos: chapterPhotos };
-      });
-
-      setChapters(builtChapters);
-      setLoading(false);
-    }
-
-    loadPhotos();
-  }, []);
-
-  if (loading) {
+  if (chapters.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-royal-gold/30 border-t-royal-gold rounded-full mx-auto mb-4 animate-spin-slow" />
-          <p className="text-sm text-royal-muted">Loading memories...</p>
-        </div>
+      <div className="py-16 text-center">
+        <p className="text-royal-muted">No photo chapters configured.</p>
+        <button onClick={onComplete} className="mt-4 text-royal-gold underline">Skip →</button>
       </div>
     );
   }
@@ -208,7 +150,7 @@ export default function PhotoJourney({ onComplete }: PhotoJourneyProps) {
         </div>
         <GoldDivider />
         <h1 className="text-4xl font-light bg-gradient-to-b from-royal-gold-light to-royal-gold bg-clip-text text-transparent">
-          The Manoj Story
+          The {experience.person_a_name} Story
         </h1>
         <p className="text-[15px] text-royal-muted italic mt-2">
           Scroll through the chapters of a life well-lived
@@ -217,7 +159,7 @@ export default function PhotoJourney({ onComplete }: PhotoJourneyProps) {
 
       {/* Chapters */}
       {chapters.map((ch, i) => (
-        <ChapterSection key={ch.id} chapter={ch} index={i} onVisible={() => play('pageTurn')} />
+        <ChapterSection key={i} chapter={ch} index={i} onVisible={() => play('pageTurn')} />
       ))}
 
       {/* CTA */}

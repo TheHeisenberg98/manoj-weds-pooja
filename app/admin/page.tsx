@@ -31,8 +31,8 @@ export default function AdminPage() {
   const [dragOver, setDragOver] = useState(false);
   const [message, setMessage] = useState('');
 
-  // Simple password gate for admin
-  const ADMIN_PASSWORD = 'manojwedpooja2025'; // Change this!
+  // Simple password gate for admin — set via env var or fallback to empty (disabled)
+  const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || '';
 
   const handleLogin = () => {
     if (password === ADMIN_PASSWORD) {
@@ -366,7 +366,7 @@ export default function AdminPage() {
           <h3 className="text-sm font-semibold text-[#D4A853] mb-2">📤 Share with friends</h3>
           <p className="text-xs text-[#C4A882] mb-3">
             Share this page URL with your friends so they can upload photos too.
-            They&apos;ll need the password: <code className="text-[#D4A853] bg-[#D4A853]/10 px-1.5 py-0.5 rounded">{ADMIN_PASSWORD}</code>
+            They&apos;ll need the admin password (set via NEXT_PUBLIC_ADMIN_PASSWORD env var).
           </p>
           <p className="text-xs text-[#C4A882]/50">
             URL: <span className="text-[#D4A853]">yoursite.vercel.app/admin</span>

@@ -2,14 +2,16 @@
 
 import { useState, useRef } from 'react';
 import { OrnateCorner, GoldDivider, MandalaRing } from './Ornaments';
-import { getPlayerByPhone, type PlayerID } from '@/lib/supabase';
 import { useSound } from '@/lib/useSound';
+import { resolvePhoneToRole } from '@/lib/experienceData';
+import type { StageProps } from '@/lib/types';
 
-interface PhoneGateProps {
-  onVerified: (player: PlayerID) => void;
-}
-
-export default function PhoneGate({ onVerified }: PhoneGateProps) {
+export default function PhoneGate({
+  experience,
+  participant,
+  stageConfig,
+  onComplete,
+}: StageProps<'phone_gate'>) {
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState(['', '', '', '']);
   const [step, setStep] = useState<'phone' | 'otp' | 'verified'>('phone');
@@ -18,13 +20,16 @@ export default function PhoneGate({ onVerified }: PhoneGateProps) {
   const otpRefs = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)];
   const { play } = useSound();
 
+  const personAName = experience.person_a_name;
+  const personBName = experience.person_b_name;
+
   const handlePhoneSend = () => {
-    const player = getPlayerByPhone(phone);
-    if (player) {
+    const role = resolvePhoneToRole(phone, experience.access_phones);
+    if (role) {
       setError('');
       setStep('otp');
     } else {
-      setError('This experience is exclusively crafted for the couple ✨');
+      setError('This experience is exclusively crafted for the special ones ✨');
     }
   };
 
@@ -39,8 +44,7 @@ export default function PhoneGate({ onVerified }: PhoneGateProps) {
       setTimeout(() => {
         setStep('verified');
         play('chime');
-        const player = getPlayerByPhone(phone)!;
-        setTimeout(() => onVerified(player), 1500);
+        setTimeout(() => onComplete(), 1500);
       }, 1800);
     }
   };
@@ -56,27 +60,25 @@ export default function PhoneGate({ onVerified }: PhoneGateProps) {
       <MandalaRing size={350} opacity={0.05} />
 
       <div className="relative z-10 text-center w-full max-w-[360px]">
-        {/* Ornate corners */}
         <div className="flex justify-between -mb-2">
           <OrnateCorner />
           <OrnateCorner flip />
         </div>
 
         <div className="text-sm tracking-[6px] text-royal-gold mb-2 uppercase">
-          Shubh Vivah
+          {stageConfig.welcome_text ?? experience.subtitle ?? 'Shubh Vivah'}
         </div>
 
         <h1 className="text-5xl font-light leading-tight my-2 bg-gradient-to-b from-royal-gold-light via-royal-gold to-royal-gold-dark bg-clip-text text-transparent">
-          Manoj
+          {personAName}
         </h1>
-        <div className="text-lg text-royal-gold italic">weds</div>
+        <div className="text-lg text-royal-gold italic">&amp;</div>
         <h1 className="text-5xl font-light leading-tight mt-2 mb-4 bg-gradient-to-b from-royal-gold-light via-royal-gold to-royal-gold-dark bg-clip-text text-transparent">
-          Pooja
+          {personBName}
         </h1>
 
         <GoldDivider />
 
-        {/* Phone step */}
         {step === 'phone' && (
           <div className="animate-slide-up">
             <p className="text-[15px] text-royal-muted mb-6 leading-relaxed">
@@ -111,7 +113,6 @@ export default function PhoneGate({ onVerified }: PhoneGateProps) {
           </div>
         )}
 
-        {/* OTP step */}
         {step === 'otp' && (
           <div className="animate-slide-up">
             <p className="text-sm text-royal-muted mb-6">
@@ -146,7 +147,6 @@ export default function PhoneGate({ onVerified }: PhoneGateProps) {
           </div>
         )}
 
-        {/* Verified step */}
         {step === 'verified' && (
           <div className="animate-scale-in text-center">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-700 to-green-500 flex items-center justify-center mx-auto mb-4 text-3xl">

@@ -2,17 +2,18 @@
 
 import { useState } from 'react';
 import { GoldDivider } from './Ornaments';
-import { getQuestionsForPlayer } from '@/lib/questions';
-import { supabase, type PlayerID, getPlayerDisplayName, getPartnerName } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { useSound } from '@/lib/useSound';
+import type { StageProps } from '@/lib/types';
 
-interface QuizProps {
-  player: PlayerID;
-  onComplete: () => void;
-}
-
-export default function CoupleQuiz({ player, onComplete }: QuizProps) {
-  const questions = getQuestionsForPlayer(player);
+export default function CoupleQuiz({
+  experience,
+  participant,
+  partner,
+  stageConfig,
+  onComplete,
+}: StageProps<'quiz'>) {
+  const questions = stageConfig.questions ?? [];
   const [current, setCurrent] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [answered, setAnswered] = useState(false);
@@ -21,9 +22,19 @@ export default function CoupleQuiz({ player, onComplete }: QuizProps) {
   const [saving, setSaving] = useState(false);
   const { play } = useSound();
 
+  const playerName = participant.display_name ?? (participant.role === 'a' ? experience.person_a_name : experience.person_b_name);
+  const partnerName = participant.role === 'a' ? experience.person_b_name : experience.person_a_name;
+
+  if (questions.length === 0) {
+    return (
+      <div className="py-16 text-center">
+        <p className="text-royal-muted">No quiz questions configured.</p>
+        <button onClick={onComplete} className="mt-4 text-royal-gold underline">Skip →</button>
+      </div>
+    );
+  }
+
   const question = questions[current];
-  const playerName = getPlayerDisplayName(player);
-  const partnerName = getPartnerName(player);
 
   const handleSelect = async (idx: number) => {
     if (answered) return;
@@ -45,22 +56,13 @@ export default function CoupleQuiz({ player, onComplete }: QuizProps) {
         play('completionChime');
 
         try {
-          // Fetch existing data (swipe game answers) and merge
-          const { data } = await supabase
-            .from('players')
-            .select('quiz_answers')
-            .eq('id', player)
-            .single();
-
-          const existing = data?.quiz_answers || {};
-
-          const { error } = await supabase.from('players').upsert({
-            id: player,
-            quiz_completed: true,
-            quiz_answers: { ...existing, ...newAnswers },
-            quiz_score: 0,
-          });
-          if (error) console.error('Save error:', error);
+          await supabase
+            .from('participants')
+            .update({
+              quiz_answers: newAnswers,
+              quiz_completed: true,
+            })
+            .eq('id', participant.id);
         } catch (err) {
           console.error('Save failed:', err);
         }

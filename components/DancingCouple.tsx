@@ -1,16 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { GoldDivider } from './Ornaments';
-import { type PlayerID } from '@/lib/supabase';
 
 interface DancingCoupleProps {
-  player: PlayerID;
+  personAName?: string;
+  personBName?: string;
   onComplete: () => void;
 }
 
-// Animated dancing couple using CSS animations — will be replaced with actual AI video
-export default function DancingCouple({ player, onComplete }: DancingCoupleProps) {
+// Animated dancing couple using CSS animations — decorative component
+export default function DancingCouple({ personAName = 'Person A', personBName = 'Person B', onComplete }: DancingCoupleProps) {
   const [phase, setPhase] = useState<'intro' | 'dance' | 'done'>('intro');
 
   const startDance = () => {
@@ -44,9 +44,7 @@ export default function DancingCouple({ player, onComplete }: DancingCoupleProps
 
       {phase === 'dance' && (
         <div className="animate-fade-in">
-          {/* Dance stage */}
           <div className="relative bg-gradient-to-b from-purple-900/30 to-royal-red/20 border border-royal-gold/15 rounded-3xl p-8 min-h-[400px] overflow-hidden">
-            {/* Disco lights */}
             <div className="absolute inset-0 overflow-hidden">
               {[...Array(6)].map((_, i) => (
                 <div
@@ -64,35 +62,25 @@ export default function DancingCouple({ player, onComplete }: DancingCoupleProps
               ))}
             </div>
 
-            {/* Video placeholder area */}
             <div className="relative z-10 flex flex-col items-center justify-center min-h-[350px]">
-              {/* TODO: Replace with actual AI-generated dancing video */}
-              {/* For now, animated dancing couple */}
               <div className="flex items-end gap-2 mb-8">
-                <div
-                  className="text-8xl"
-                  style={{ animation: 'danceBounce 0.6s ease-in-out infinite alternate' }}
-                >
+                <div className="text-8xl" style={{ animation: 'danceBounce 0.6s ease-in-out infinite alternate' }}>
                   🕺
                 </div>
-                <div
-                  className="text-8xl"
-                  style={{ animation: 'danceBounce 0.6s ease-in-out infinite alternate-reverse' }}
-                >
+                <div className="text-8xl" style={{ animation: 'danceBounce 0.6s ease-in-out infinite alternate-reverse' }}>
                   💃
                 </div>
               </div>
 
               <div className="text-center">
                 <p className="text-xl text-royal-gold-light font-semibold mb-1">
-                  Manoj & Pooja
+                  {personAName} & {personBName}
                 </p>
                 <p className="text-sm text-royal-muted italic">
                   Dancing into forever... 💕
                 </p>
               </div>
 
-              {/* Music visualizer bars */}
               <div className="flex items-end gap-1 mt-8 h-12">
                 {[...Array(20)].map((_, i) => (
                   <div
@@ -106,10 +94,6 @@ export default function DancingCouple({ player, onComplete }: DancingCoupleProps
                   />
                 ))}
               </div>
-
-              <p className="text-[10px] text-royal-muted/30 mt-6">
-                🎵 Imagine &ldquo;Tum Hi Ho&rdquo; playing in the background
-              </p>
             </div>
           </div>
         </div>

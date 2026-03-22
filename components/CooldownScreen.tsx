@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { GoldDivider } from './Ornaments';
-import { supabase, type PlayerID, getPlayerDisplayName } from '@/lib/supabase';
+import { resetParticipant } from '@/lib/experienceData';
+import type { Experience, Participant } from '@/lib/types';
 
 const COOLDOWN_MS = 2 * 60 * 60 * 1000; // 2 hours
 
 interface CooldownScreenProps {
-  player: PlayerID;
-  completedAt: string; // ISO timestamp
+  participant: Participant;
+  experience: Experience;
+  completedAt: string;
   onReplay: () => void;
 }
 
@@ -22,7 +24,7 @@ function formatTimeLeft(ms: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export default function CooldownScreen({ player, completedAt, onReplay }: CooldownScreenProps) {
+export default function CooldownScreen({ participant, experience, completedAt, onReplay }: CooldownScreenProps) {
   const [timeLeft, setTimeLeft] = useState(() => {
     const elapsed = Date.now() - new Date(completedAt).getTime();
     return Math.max(0, COOLDOWN_MS - elapsed);
@@ -30,6 +32,7 @@ export default function CooldownScreen({ player, completedAt, onReplay }: Cooldo
   const [resetting, setResetting] = useState(false);
 
   const expired = timeLeft <= 0;
+  const playerName = participant.display_name ?? (participant.role === 'a' ? experience.person_a_name : experience.person_b_name);
 
   useEffect(() => {
     if (expired) return;
@@ -44,20 +47,10 @@ export default function CooldownScreen({ player, completedAt, onReplay }: Cooldo
 
   const handleReplay = async () => {
     setResetting(true);
-    await supabase
-      .from('players')
-      .update({
-        quiz_completed: false,
-        quiz_answers: {},
-        quiz_score: 0,
-        completed_at: null,
-      })
-      .eq('id', player);
+    await resetParticipant(participant.id);
     setResetting(false);
     onReplay();
   };
-
-  const playerName = getPlayerDisplayName(player);
 
   return (
     <div className="min-h-screen flex items-center justify-center">
@@ -94,7 +87,6 @@ export default function CooldownScreen({ player, completedAt, onReplay }: Cooldo
               You can replay in
             </p>
 
-            {/* Countdown */}
             <div className="inline-block bg-royal-gold/[0.06] border border-royal-gold/20 rounded-2xl px-8 py-5 mb-6">
               <div className="text-3xl font-light text-royal-gold tracking-wider" style={{ fontVariantNumeric: 'tabular-nums' }}>
                 {formatTimeLeft(timeLeft)}

@@ -2,26 +2,30 @@
 
 import { useState, useEffect } from 'react';
 import { OrnateCorner, GoldDivider, MandalaRing, Confetti } from './Ornaments';
-import { supabase, type PlayerID } from '@/lib/supabase';
-import { compareMatchingAnswers } from '@/lib/questions';
+import { supabase } from '@/lib/supabase';
 import { useSound } from '@/lib/useSound';
 import { soundEngine, MEME_SOUNDS } from '@/lib/soundEngine';
-
-interface GiftRevealProps {
-  player: PlayerID;
-  onReplay?: () => void;
-}
+import { markParticipantComplete, resetParticipant } from '@/lib/experienceData';
+import type { StageProps, QuizConfig } from '@/lib/types';
 
 interface MatchResult {
   questionId: string;
   question: string;
-  manojAnswer: string;
-  poojaAnswer: string;
+  personAAnswer: string;
+  personBAnswer: string;
   matched: boolean;
   category: string;
 }
 
-export default function GiftReveal({ player, onReplay }: GiftRevealProps) {
+export default function GiftReveal({
+  experience,
+  participant,
+  partner,
+  stageConfig,
+  onComplete,
+  ...rest
+}: StageProps<'gift_reveal'> & { onReplay?: () => void }) {
+  const onReplay = (rest as any).onReplay;
   const [revealed, setRevealed] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [matchResults, setMatchResults] = useState<MatchResult[]>([]);
@@ -31,20 +35,53 @@ export default function GiftReveal({ player, onReplay }: GiftRevealProps) {
   const [resetting, setResetting] = useState(false);
   const { play } = useSound();
 
+  const personAName = experience.person_a_name;
+  const personBName = experience.person_b_name;
+  const giftData = stageConfig.gift_data ?? {};
+  const giftType = stageConfig.gift_type ?? 'message';
+
   useEffect(() => {
     let retryTimer: NodeJS.Timeout;
 
     async function loadMatches(attempt = 0) {
-      const { data: players } = await supabase
-        .from('players')
-        .select('id, quiz_answers')
-        .in('id', ['manoj', 'pooja']);
+      // Fetch both participants' quiz answers
+      const { data: participants } = await supabase
+        .from('participants')
+        .select('role, quiz_answers')
+        .eq('experience_id', experience.id);
 
-      if (players && players.length === 2) {
-        const manoj = players.find((p: any) => p.id === 'manoj');
-        const pooja = players.find((p: any) => p.id === 'pooja');
-        if (manoj?.quiz_answers && pooja?.quiz_answers) {
-          const results = compareMatchingAnswers(manoj.quiz_answers, pooja.quiz_answers);
+      if (participants && participants.length === 2) {
+        const pA = participants.find((p: any) => p.role === 'a');
+        const pB = participants.find((p: any) => p.role === 'b');
+
+        if (pA?.quiz_answers && pB?.quiz_answers) {
+          // Get quiz config for question text
+          const { data: stages } = await supabase
+            .from('stages')
+            .select('config')
+            .eq('experience_id', experience.id)
+            .eq('stage_type', 'quiz')
+            .single();
+
+          const quizConfig = stages?.config as QuizConfig | null;
+          const questions = quizConfig?.questions ?? [];
+
+          const results: MatchResult[] = [];
+          for (const q of questions) {
+            const aIdx = pA.quiz_answers[q.id];
+            const bIdx = pB.quiz_answers[q.id];
+            if (aIdx !== undefined && bIdx !== undefined) {
+              results.push({
+                questionId: q.id,
+                question: q.question,
+                personAAnswer: q.options[aIdx] ?? `Option ${aIdx}`,
+                personBAnswer: q.options[bIdx] ?? `Option ${bIdx}`,
+                matched: aIdx === bIdx,
+                category: q.category,
+              });
+            }
+          }
+
           if (results.length > 0) {
             setMatchResults(results);
             setBrowniePoints(results.filter((r) => r.matched).length);
@@ -53,7 +90,6 @@ export default function GiftReveal({ player, onReplay }: GiftRevealProps) {
         }
       }
 
-      // Retry up to 3 times with 2s delay if no results (handles timing/caching)
       if (attempt < 3) {
         retryTimer = setTimeout(() => loadMatches(attempt + 1), 2000);
       }
@@ -61,7 +97,7 @@ export default function GiftReveal({ player, onReplay }: GiftRevealProps) {
 
     loadMatches();
     return () => clearTimeout(retryTimer);
-  }, []);
+  }, [experience.id]);
 
   const handleReveal = () => {
     play('grandReveal');
@@ -69,18 +105,12 @@ export default function GiftReveal({ player, onReplay }: GiftRevealProps) {
     setShowConfetti(true);
     play('confetti');
 
-    // Save completed_at timestamp for session management
-    supabase
-      .from('players')
-      .update({ completed_at: new Date().toISOString() })
-      .eq('id', player)
-      .then();
+    markParticipantComplete(participant.id);
 
     setTimeout(() => {
       setRevealed(true);
       setTimeout(() => {
         setShowMatches(true);
-        // Play "emotional damage" if less than half the answers matched
         if (matchResults.length > 0 && browniePoints < matchResults.length / 2) {
           soundEngine.playFile(MEME_SOUNDS.emotionalDamage);
         }
@@ -90,17 +120,83 @@ export default function GiftReveal({ player, onReplay }: GiftRevealProps) {
 
   const handleResetSession = async () => {
     setResetting(true);
-    await supabase
-      .from('players')
-      .update({
-        quiz_completed: false,
-        quiz_answers: {},
-        quiz_score: 0,
-        completed_at: null,
-      })
-      .eq('id', player);
+    await resetParticipant(participant.id);
     setResetting(false);
     onReplay?.();
+  };
+
+  const renderGift = () => {
+    if (giftType === 'voucher') {
+      return (
+        <>
+          <div className="bg-gradient-to-br from-[#1a237e] to-[#283593] rounded-2xl p-6 mb-5">
+            <div className="text-3xl font-bold text-[#FF5722] font-sans mb-1">
+              {giftData.voucher_brand ?? 'Gift Voucher'}
+            </div>
+            <div className="text-sm text-white/70 mb-4">
+              {giftData.voucher_subtitle ?? 'Gift Voucher'}
+            </div>
+            <div className="text-4xl font-bold text-white font-sans">
+              {giftData.voucher_amount ?? ''}
+            </div>
+            <div className="text-xs text-white/50 mt-2">
+              Valid for Flights • Hotels • Holidays
+            </div>
+          </div>
+          {giftData.voucher_code && (
+            <>
+              <GoldDivider />
+              <div className="bg-black/30 border border-royal-gold/20 rounded-xl p-4 mb-8">
+                <div className="text-xs text-royal-gold/60 mb-1">Gift Card Number</div>
+                <div className="text-lg text-white font-bold tracking-widest" style={{ fontFamily: 'monospace' }}>
+                  {giftData.voucher_code}
+                </div>
+              </div>
+            </>
+          )}
+        </>
+      );
+    }
+
+    if (giftType === 'message') {
+      return (
+        <div className="bg-gradient-to-br from-royal-red/20 to-royal-gold/10 border border-royal-gold/30 rounded-2xl p-8 mb-6">
+          <p className="text-lg text-royal-cream leading-relaxed italic">
+            &ldquo;{giftData.message_text ?? 'With love and best wishes for your journey together!'}&rdquo;
+          </p>
+          {giftData.message_from && (
+            <p className="text-sm text-royal-gold mt-4">
+              — {giftData.message_from}
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    if (giftType === 'image' && giftData.image_url) {
+      return (
+        <div className="rounded-2xl overflow-hidden mb-6">
+          <img src={giftData.image_url} alt="Gift" className="w-full" />
+        </div>
+      );
+    }
+
+    if (giftType === 'link' && giftData.link_url) {
+      return (
+        <div className="mb-6">
+          <a
+            href={giftData.link_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block px-8 py-4 bg-gradient-to-br from-royal-red to-royal-red-light border-2 border-royal-gold rounded-2xl text-royal-gold-light text-lg font-display font-semibold tracking-wider uppercase"
+          >
+            {giftData.link_label ?? 'Open Your Gift'}
+          </a>
+        </div>
+      );
+    }
+
+    return null;
   };
 
   return (
@@ -114,7 +210,7 @@ export default function GiftReveal({ player, onReplay }: GiftRevealProps) {
         </div>
         <div className="text-5xl mb-4">🎁</div>
         <h2 className="text-3xl font-normal bg-gradient-to-b from-royal-gold-light to-royal-gold bg-clip-text text-transparent mb-4">
-          A Gift For The Couple
+          {giftData.reveal_text ?? 'A Gift For The Couple'}
         </h2>
 
         {!revealed ? (
@@ -133,43 +229,24 @@ export default function GiftReveal({ player, onReplay }: GiftRevealProps) {
           </div>
         ) : (
           <div className="animate-scale-in">
-            {/* Voucher Card */}
+            {/* Gift Card */}
             <div className="bg-gradient-to-br from-royal-red/30 to-royal-gold/10 border-2 border-royal-gold rounded-3xl p-8 relative overflow-hidden mb-6">
               <div className="absolute top-0 left-0"><OrnateCorner /></div>
               <div className="absolute top-0 right-0"><OrnateCorner flip /></div>
 
               <div className="text-sm tracking-[4px] text-royal-gold mb-4 uppercase">
-                Your Wedding Gift
+                Your Gift
               </div>
 
-              <div className="bg-gradient-to-br from-[#1a237e] to-[#283593] rounded-2xl p-6 mb-5">
-                <div className="text-3xl font-bold text-[#FF5722] font-sans mb-1">
-                  MakeMyTrip
-                </div>
-                <div className="text-sm text-white/70 mb-4">Gift Voucher</div>
-                <div className="text-4xl font-bold text-white font-sans">₹ 10,001</div>
-                <div className="text-xs text-white/50 mt-2">
-                  Valid for Flights • Hotels • Holidays
-                </div>
-              </div>
+              {renderGift()}
 
-              <p className="text-base text-royal-cream leading-relaxed italic mb-2">
-                &ldquo;Go make memories together.<br />
-                You&apos;ve earned this one.&rdquo;
-              </p>
-              <p className="text-sm text-royal-gold mt-4">
-                — With love, from the boys ❤️
-              </p>
+              {giftType !== 'message' && (
+                <p className="text-base text-royal-cream leading-relaxed italic mb-2">
+                  &ldquo;Go make memories together.<br />
+                  You&apos;ve earned this one.&rdquo;
+                </p>
+              )}
             </div>
-
-            <GoldDivider />
-
-            <div className="bg-black/30 border border-royal-gold/20 rounded-xl p-4 mb-8">
-  <div className="text-xs text-royal-gold/60 mb-1">Gift Card Number</div>
-  <div className="text-lg text-white font-bold tracking-widest" style={{ fontFamily: 'monospace' }}>
-    1001-1301-1205-8190
-  </div>
-</div>
 
             {/* Matching Answers Comparison */}
             {showMatches && matchResults.length > 0 && (
@@ -200,7 +277,7 @@ export default function GiftReveal({ player, onReplay }: GiftRevealProps) {
                     >
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs text-royal-muted/50">{result.category}</span>
-                        <span className={`text-lg ${result.matched ? '' : ''}`}>
+                        <span className="text-lg">
                           {result.matched ? '✅' : '❌'}
                         </span>
                       </div>
@@ -211,14 +288,14 @@ export default function GiftReveal({ player, onReplay }: GiftRevealProps) {
                         <div className={`p-2 rounded-lg text-center ${
                           result.matched ? 'bg-green-800/20 border border-green-500/30' : 'bg-royal-red/20 border border-royal-red/30'
                         }`}>
-                          <div className="text-[10px] text-royal-muted/60 mb-1">Manoj</div>
-                          <div className="text-xs text-royal-cream">{result.manojAnswer}</div>
+                          <div className="text-[10px] text-royal-muted/60 mb-1">{personAName}</div>
+                          <div className="text-xs text-royal-cream">{result.personAAnswer}</div>
                         </div>
                         <div className={`p-2 rounded-lg text-center ${
                           result.matched ? 'bg-green-800/20 border border-green-500/30' : 'bg-royal-red/20 border border-royal-red/30'
                         }`}>
-                          <div className="text-[10px] text-royal-muted/60 mb-1">Pooja</div>
-                          <div className="text-xs text-royal-cream">{result.poojaAnswer}</div>
+                          <div className="text-[10px] text-royal-muted/60 mb-1">{personBName}</div>
+                          <div className="text-xs text-royal-cream">{result.personBAnswer}</div>
                         </div>
                       </div>
                     </div>
@@ -227,8 +304,8 @@ export default function GiftReveal({ player, onReplay }: GiftRevealProps) {
               </div>
             )}
 
-            {/* Replay option — hidden behind a link */}
-            {showMatches && (
+            {/* Replay option */}
+            {showMatches && onReplay && (
               <div className="mt-10 pt-6 border-t border-royal-gold/10">
                 {!showReplayOption ? (
                   <button

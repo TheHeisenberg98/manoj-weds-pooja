@@ -2,33 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { GoldDivider, MandalaRing } from './Ornaments';
-import { supabase, type PlayerID } from '@/lib/supabase';
-import { compareMatchingAnswers } from '@/lib/questions';
+import { supabase } from '@/lib/supabase';
 import { soundEngine, MEME_SOUNDS } from '@/lib/soundEngine';
-
-interface CompatibilityMeterProps {
-  player: PlayerID;
-  onComplete: () => void;
-}
+import type { StageProps, QuizConfig } from '@/lib/types';
 
 const ANALYSIS_STEPS = [
   { text: 'Analyzing quiz responses...', emoji: '🧪', duration: 1200 },
   { text: 'Cross-referencing compatibility vectors...', emoji: '📡', duration: 1000 },
   { text: 'Running astrological alignment check...', emoji: '🪐', duration: 1100 },
   { text: 'Consulting ancient love algorithms...', emoji: '📜', duration: 900 },
-  { text: 'Calibrating Bollywood romance index...', emoji: '🎬', duration: 1000 },
+  { text: 'Calibrating romance index...', emoji: '🎬', duration: 1000 },
   { text: 'Final computation...', emoji: '💫', duration: 800 },
 ];
-
-// Category display config — maps question category prefixes to display labels
-const CATEGORY_DISPLAY: Record<string, { label: string; icon: string }> = {
-  '🗺️ Travel': { label: 'Travel Compatibility', icon: '🗺️' },
-  '🍕 Food': { label: 'Food Sync', icon: '🍕' },
-  '🏙️ Bengaluru': { label: 'Bengaluru Bond', icon: '🏙️' },
-  '😂 Fun': { label: 'Fun & Personality Match', icon: '😂' },
-  '💕 Relationship': { label: 'Relationship Alignment', icon: '💕' },
-  '🎬 Random': { label: 'Random Vibes', icon: '🎬' },
-};
 
 interface CategoryScore {
   label: string;
@@ -38,7 +23,12 @@ interface CategoryScore {
   percent: number;
 }
 
-export default function CompatibilityMeter({ player, onComplete }: CompatibilityMeterProps) {
+export default function CompatibilityMeter({
+  experience,
+  participant,
+  partner,
+  onComplete,
+}: StageProps<'compatibility'>) {
   const [phase, setPhase] = useState<'loading' | 'reveal' | 'breakdown'>('loading');
   const [currentStep, setCurrentStep] = useState(0);
   const [score, setScore] = useState(0);
@@ -48,87 +38,101 @@ export default function CompatibilityMeter({ player, onComplete }: Compatibility
   const [categoryScores, setCategoryScores] = useState<CategoryScore[]>([]);
   const [showCategories, setShowCategories] = useState(false);
 
+  const personAName = experience.person_a_name;
+  const personBName = experience.person_b_name;
+
   useEffect(() => {
-    // Load real data and compute score
     async function computeScore() {
-      const { data: players } = await supabase
-        .from('players')
-        .select('id, quiz_answers, quiz_score')
-        .in('id', ['manoj', 'pooja']);
+      // Fetch both participants' quiz answers
+      const { data: participants } = await supabase
+        .from('participants')
+        .select('role, quiz_answers')
+        .eq('experience_id', experience.id);
 
       let matched = 0;
       let total = 0;
-      let finalScore = 0;
       const catMap = new Map<string, { matched: number; total: number }>();
 
-      if (players && players.length === 2) {
-        const manoj = players.find((p: any) => p.id === 'manoj');
-        const pooja = players.find((p: any) => p.id === 'pooja');
+      if (participants && participants.length === 2) {
+        const pA = participants.find((p: any) => p.role === 'a');
+        const pB = participants.find((p: any) => p.role === 'b');
 
-        if (manoj?.quiz_answers && pooja?.quiz_answers) {
-          const results = compareMatchingAnswers(manoj.quiz_answers, pooja.quiz_answers);
-          matched = results.filter((r) => r.matched).length;
-          total = results.length;
+        if (pA?.quiz_answers && pB?.quiz_answers) {
+          // Get quiz stage to access questions for category info
+          const { data: stages } = await supabase
+            .from('stages')
+            .select('config')
+            .eq('experience_id', experience.id)
+            .eq('stage_type', 'quiz')
+            .single();
 
-          // Build per-category stats
-          for (const r of results) {
-            const cat = catMap.get(r.category) || { matched: 0, total: 0 };
-            cat.total++;
-            if (r.matched) cat.matched++;
-            catMap.set(r.category, cat);
+          const quizConfig = stages?.config as QuizConfig | null;
+          const questions = quizConfig?.questions ?? [];
+
+          // Compare answers
+          for (const q of questions) {
+            const aAnswer = pA.quiz_answers[q.id];
+            const bAnswer = pB.quiz_answers[q.id];
+            if (aAnswer !== undefined && bAnswer !== undefined) {
+              total++;
+              const isMatch = aAnswer === bAnswer;
+              if (isMatch) matched++;
+
+              const cat = catMap.get(q.category) || { matched: 0, total: 0 };
+              cat.total++;
+              if (isMatch) cat.matched++;
+              catMap.set(q.category, cat);
+            }
           }
         }
       }
 
-      // Accurate match percentage
-      finalScore = total > 0 ? Math.round((matched / total) * 100) : 0;
-
+      const finalScore = total > 0 ? Math.round((matched / total) * 100) : 0;
       setScore(finalScore);
       setMatchCount(matched);
       setTotalMatching(total);
 
-      // Real per-category breakdown
       const cats: CategoryScore[] = [];
-      for (const [catKey, display] of Object.entries(CATEGORY_DISPLAY)) {
-        const stats = catMap.get(catKey);
-        if (stats && stats.total > 0) {
+      catMap.forEach((stats, catKey) => {
+        if (stats.total > 0) {
+          // Extract leading emoji if present (e.g. "🗺️ Travel" → icon: "🗺️", label: "Travel")
+          const parts = catKey.split(' ');
+          const firstPart = parts[0] ?? '';
+          const hasEmoji = firstPart.length <= 4 && parts.length > 1;
           cats.push({
-            label: display.label,
-            icon: display.icon,
+            label: hasEmoji ? parts.slice(1).join(' ') : catKey,
+            icon: hasEmoji ? firstPart : '📊',
             matched: stats.matched,
             total: stats.total,
             percent: Math.round((stats.matched / stats.total) * 100),
           });
         }
-      }
+      });
       setCategoryScores(cats);
     }
 
     computeScore();
 
-    // Start drumroll during analysis
     soundEngine.drumroll();
 
-    // Run analysis steps
     let totalDelay = 0;
-
     ANALYSIS_STEPS.forEach((step, i) => {
       totalDelay += step.duration;
       setTimeout(() => setCurrentStep(i), totalDelay - step.duration);
     });
 
-    // After all steps, reveal score
     const finalTimer = setTimeout(() => {
       soundEngine.drumrollStop();
       soundEngine.tada();
       soundEngine.playFile(MEME_SOUNDS.vineBoom);
       setPhase('reveal');
     }, totalDelay + 500);
+
     return () => {
       clearTimeout(finalTimer);
       soundEngine.drumrollStop();
     };
-  }, []);
+  }, [experience.id]);
 
   // Animate score counter
   useEffect(() => {
@@ -141,7 +145,6 @@ export default function CompatibilityMeter({ player, onComplete }: Compatibility
       if (current >= target) {
         current = target;
         clearInterval(interval);
-        // Show categories after score settles
         setTimeout(() => setShowCategories(true), 1000);
       }
       setDisplayScore(current);
@@ -162,7 +165,6 @@ export default function CompatibilityMeter({ player, onComplete }: Compatibility
             Computing Compatibility...
           </h2>
 
-          {/* Fake terminal */}
           <div className="bg-black/40 border border-royal-gold/15 rounded-2xl p-5 text-left font-mono mb-6">
             {ANALYSIS_STEPS.slice(0, currentStep + 1).map((step, i) => (
               <div
@@ -185,7 +187,6 @@ export default function CompatibilityMeter({ player, onComplete }: Compatibility
             ))}
           </div>
 
-          {/* Progress bar */}
           <div className="h-1.5 bg-royal-gold/10 rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-royal-gold to-royal-gold-light rounded-full transition-all duration-1000"
@@ -201,15 +202,13 @@ export default function CompatibilityMeter({ player, onComplete }: Compatibility
             Results Are In
           </div>
           <h2 className="text-2xl text-royal-gold font-normal mb-8">
-            Manoj & Pooja Compatibility
+            {personAName} & {personBName} Compatibility
           </h2>
 
           {/* Giant score circle */}
           <div className="relative inline-block mb-8">
             <svg viewBox="0 0 200 200" className="w-52 h-52">
-              {/* Background circle */}
               <circle cx="100" cy="100" r="85" fill="none" stroke="rgba(212,168,83,0.1)" strokeWidth="8" />
-              {/* Animated progress circle */}
               <circle
                 cx="100" cy="100" r="85"
                 fill="none"
@@ -256,7 +255,7 @@ export default function CompatibilityMeter({ player, onComplete }: Compatibility
 
           {matchCount > 0 && (
             <p className="text-sm text-royal-muted mb-6">
-              Matched on {matchCount}/{totalMatching} questions! 
+              Matched on {matchCount}/{totalMatching} questions!
               {matchCount > totalMatching / 2 ? ' 🎯 Great minds think alike!' : ' Different minds, one heart 💕'}
             </p>
           )}
